@@ -15,7 +15,14 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuDownload, LuPause, LuPlay, LuSearch, LuX, LuMapPin } from "react-icons/lu";
+import {
+  LuDownload,
+  LuPause,
+  LuPlay,
+  LuSearch,
+  LuX,
+  LuMapPin,
+} from "react-icons/lu";
 import type { StacCollection, StacLink } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
@@ -66,11 +73,11 @@ export default function ItemSearch({
     const searchParams: StacSearch = {
       collections: collections.map((collection) => collection.id),
     };
-    
+
     if (useViewportBounds && viewportBounds) {
       searchParams.bbox = viewportBounds;
     }
-    
+
     setSearch(searchParams);
   };
 
@@ -92,7 +99,7 @@ export default function ItemSearch({
         title="Search Date Filter"
         description="Filter items at the server level when searching"
       />
-      
+
       {/* Viewport Bounds Toggle */}
       <Stack gap={2}>
         <HStack justify="space-between">

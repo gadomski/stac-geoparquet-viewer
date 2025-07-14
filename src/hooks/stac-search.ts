@@ -14,11 +14,11 @@ export default function useStacSearch(search: StacSearch, link: StacLink) {
     if (datetime) {
       searchWithDateRange = { ...search, datetime };
     }
-    
+
     if (viewportBounds && !search.bbox) {
       searchWithDateRange = { ...searchWithDateRange, bbox: viewportBounds };
     }
-    
+
     return searchWithDateRange;
   }, [search, dateRange, viewportBounds]);
 
