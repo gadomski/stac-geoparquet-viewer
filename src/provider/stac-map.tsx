@@ -19,7 +19,7 @@ import {
   serializeClientFilterDateRange,
   deserializeClientFilterDateRange,
 } from "../utils/url-persistence";
-import { createDateRangeFromTemporalExtent } from "../utils/date-filter";
+import { createDateRangeFromTemporalExtent, extractTemporalExtent } from "../utils/date-filter";
 import { useDebounce } from "../hooks/use-debounce";
 
 const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 300;
@@ -201,6 +201,12 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     }
   }, [value, clearDateRange]);
 
+  const hasTemporalData = useMemo(() => {
+    if (picked) return !!extractTemporalExtent(picked);
+    if (value) return !!extractTemporalExtent(value);
+    return false;
+  }, [picked, value]);
+
   const contextValue = {
     href,
     setHref,
@@ -227,6 +233,7 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     setClientFilterDateRange,
     clearClientFilterDateRange,
     isClientFilterActive,
+    hasTemporalData,
   };
 
   return (

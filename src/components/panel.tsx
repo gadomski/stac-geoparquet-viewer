@@ -23,6 +23,7 @@ export default function Panel() {
     setDateRange,
     clearDateRange,
     isDateFilterActive,
+    hasTemporalData,
   } = useStacMap();
   const [tab, setTab] = useState<string>("upload");
   const [itemSearchLinks, setItemSearchLinks] = useState<StacLink[]>([]);
@@ -71,7 +72,7 @@ export default function Panel() {
         >
           <LuSearch></LuSearch>
         </Tabs.Trigger>
-        <Tabs.Trigger value="filter">
+        <Tabs.Trigger value="filter" disabled={!hasTemporalData}>
           <LuFilter></LuFilter>
         </Tabs.Trigger>
         <Tabs.Trigger value="picked" disabled={!picked}>

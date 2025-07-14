@@ -35,4 +35,6 @@ interface StacMapContextType {
   setClientFilterDateRange: (dateRange: DateRange) => void;
   clearClientFilterDateRange: () => void;
   isClientFilterActive: boolean;
+
+  hasTemporalData: boolean;
 }
