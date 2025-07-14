@@ -125,8 +125,13 @@ export default function SlidingDateFilter({
     );
     endValue = Math.max(startValue + 1, Math.min(sliderRange.max, endValue));
 
-    if (startValue >= endValue || startValue < sliderRange.min || endValue > sliderRange.max) {
-      const midPoint = sliderRange.min + (sliderRange.max - sliderRange.min) / 2;
+    if (
+      startValue >= endValue ||
+      startValue < sliderRange.min ||
+      endValue > sliderRange.max
+    ) {
+      const midPoint =
+        sliderRange.min + (sliderRange.max - sliderRange.min) / 2;
       const halfWindow = windowSize / 2;
       startValue = Math.max(sliderRange.min, midPoint - halfWindow);
       endValue = Math.min(sliderRange.max, startValue + windowSize);
@@ -174,11 +179,19 @@ export default function SlidingDateFilter({
   }, [sliderRange]);
 
   useEffect(() => {
-    if (sliderRange.hasValidRange && clientFilterDateRange.startDate && clientFilterDateRange.endDate) {
+    if (
+      sliderRange.hasValidRange &&
+      clientFilterDateRange.startDate &&
+      clientFilterDateRange.endDate
+    ) {
       const clientStart = clientFilterDateRange.startDate.getTime();
       const clientEnd = clientFilterDateRange.endDate.getTime();
-      
-      if (clientStart < sliderRange.min || clientEnd > sliderRange.max || clientStart >= clientEnd) {
+
+      if (
+        clientStart < sliderRange.min ||
+        clientEnd > sliderRange.max ||
+        clientStart >= clientEnd
+      ) {
         clearClientFilterDateRange();
       }
     }

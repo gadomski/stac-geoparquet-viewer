@@ -19,7 +19,10 @@ import {
   serializeClientFilterDateRange,
   deserializeClientFilterDateRange,
 } from "../utils/url-persistence";
-import { createDateRangeFromTemporalExtent, extractTemporalExtent } from "../utils/date-filter";
+import {
+  createDateRangeFromTemporalExtent,
+  extractTemporalExtent,
+} from "../utils/date-filter";
 import { useDebounce } from "../hooks/use-debounce";
 
 const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 300;
@@ -128,19 +131,16 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     history.replaceState(null, "", newUrl);
   }, []);
 
-  const debouncedClientFilterUpdate = useDebounce(
-    (dateRange: unknown) => {
-      if (
-        typeof dateRange === "object" &&
-        dateRange !== null &&
-        "startDate" in dateRange &&
-        "endDate" in dateRange
-      ) {
-        updateClientFilterUrl(dateRange as DateRange);
-      }
-    },
-    DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY
-  );
+  const debouncedClientFilterUpdate = useDebounce((dateRange: unknown) => {
+    if (
+      typeof dateRange === "object" &&
+      dateRange !== null &&
+      "startDate" in dateRange &&
+      "endDate" in dateRange
+    ) {
+      updateClientFilterUrl(dateRange as DateRange);
+    }
+  }, DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY);
 
   useEffect(() => {
     function handlePopState() {
