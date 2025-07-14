@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { StacItem } from "stac-ts";
+import type { BBox } from "geojson";
 import { StacMapContext } from "../context/stac-map";
 import { useStacCollections } from "../hooks/stac-collections";
 import useStacGeoparquet from "../hooks/stac-geoparquet";
@@ -80,6 +81,7 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
 
   const [picked, setPicked] = useState<StacValue>();
   const [searchItems, setSearchItems] = useState<StacItem[][]>([]);
+  const [viewportBounds, setViewportBounds] = useState<BBox>();
 
   const clearDateRange = useCallback(() => {
     setDateRange({
@@ -116,6 +118,10 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
       clientFilterDateRange.endTime !== undefined
     );
   }, [clientFilterDateRange]);
+
+  const isViewportBoundsActive = useMemo(() => {
+    return viewportBounds !== undefined;
+  }, [viewportBounds]);
 
   const updateClientFilterUrl = useCallback((dateRange: DateRange) => {
     const params = new URLSearchParams(location.search);
@@ -234,6 +240,10 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     clearClientFilterDateRange,
     isClientFilterActive,
     hasTemporalData,
+
+    viewportBounds,
+    setViewportBounds,
+    isViewportBoundsActive,
   };
 
   return (

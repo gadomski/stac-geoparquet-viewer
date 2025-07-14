@@ -11,10 +11,11 @@ import {
   Progress,
   Select,
   Stack,
+  Switch,
   Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuDownload, LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
+import { LuDownload, LuPause, LuPlay, LuSearch, LuX, LuMapPin } from "react-icons/lu";
 import type { StacCollection, StacLink } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
@@ -42,6 +43,8 @@ export default function ItemSearch({
   const [link, setLink] = useState(defaultLink);
   const [collections, setCollections] = useState<StacCollection[]>([]);
   const [method, setMethod] = useState((defaultLink.method as string) || "GET");
+  const [useViewportBounds, setUseViewportBounds] = useState(false);
+  const { viewportBounds, isViewportBoundsActive } = useStacMap();
 
   const methods =
     links.length > 1 &&
@@ -58,6 +61,18 @@ export default function ItemSearch({
   useEffect(() => {
     setLink(links.find((link) => link.method == method) || defaultLink);
   }, [method, defaultLink, links]);
+
+  const handleSearch = () => {
+    const searchParams: StacSearch = {
+      collections: collections.map((collection) => collection.id),
+    };
+    
+    if (useViewportBounds && viewportBounds) {
+      searchParams.bbox = viewportBounds;
+    }
+    
+    setSearch(searchParams);
+  };
 
   return (
     <Stack gap={4}>
@@ -77,6 +92,40 @@ export default function ItemSearch({
         title="Search Date Filter"
         description="Filter items at the server level when searching"
       />
+      
+      {/* Viewport Bounds Toggle */}
+      <Stack gap={2}>
+        <HStack justify="space-between">
+          <HStack gap={2}>
+            <LuMapPin size={16} />
+            <Text fontSize="sm" fontWeight="medium">
+              Use viewport bounds
+            </Text>
+          </HStack>
+          <Switch.Root
+            size="sm"
+            checked={useViewportBounds}
+            onCheckedChange={(details) => setUseViewportBounds(details.checked)}
+            disabled={!isViewportBoundsActive}
+          >
+            <Switch.HiddenInput />
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch.Root>
+        </HStack>
+        {useViewportBounds && !isViewportBoundsActive && (
+          <Text fontSize="xs" color="orange.500">
+            Move the map to enable viewport-bounded search
+          </Text>
+        )}
+        {useViewportBounds && isViewportBoundsActive && (
+          <Text fontSize="xs" color="green.500">
+            Search will be bounded to current map viewport
+          </Text>
+        )}
+      </Stack>
+
       <Alert.Root status={"warning"}>
         <Alert.Indicator></Alert.Indicator>
         <Alert.Content>
@@ -121,11 +170,8 @@ export default function ItemSearch({
         {!search && (
           <Button
             variant={"surface"}
-            onClick={() =>
-              setSearch({
-                collections: collections.map((collection) => collection.id),
-              })
-            }
+            onClick={handleSearch}
+            disabled={useViewportBounds && !isViewportBoundsActive}
           >
             <LuSearch></LuSearch> Search
           </Button>
@@ -212,6 +258,16 @@ function SearchResults({
           <Alert.Content>
             <Alert.Description>
               Showing results filtered by date range
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
+      )}
+      {search.bbox && (
+        <Alert.Root status="info">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>
+              Showing results bounded to current map viewport
             </Alert.Description>
           </Alert.Content>
         </Alert.Root>

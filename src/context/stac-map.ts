@@ -4,6 +4,7 @@ import { createContext, type Dispatch, type SetStateAction } from "react";
 import type { StacCollection, StacItem } from "stac-ts";
 import type { StacGeoparquetMetadata, StacValue } from "../types/stac";
 import type { DateRange } from "../components/date-filter";
+import type { BBox } from "geojson";
 
 export const StacMapContext = createContext<StacMapContextType | null>(null);
 
@@ -37,4 +38,8 @@ interface StacMapContextType {
   isClientFilterActive: boolean;
 
   hasTemporalData: boolean;
+
+  viewportBounds: BBox | undefined;
+  setViewportBounds: (bounds: BBox | undefined) => void;
+  isViewportBoundsActive: boolean;
 }

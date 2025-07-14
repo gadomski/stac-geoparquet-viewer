@@ -6,16 +6,25 @@ import { formatDateRangeForStacSearch } from "../utils/date-filter";
 import useStacMap from "./stac-map";
 
 export default function useStacSearch(search: StacSearch, link: StacLink) {
-  const { dateRange } = useStacMap();
+  const { dateRange, viewportBounds } = useStacMap();
 
-  const searchWithDateRange = useMemo(() => {
+  const searchWithFilters = useMemo(() => {
+    let searchWithDateRange = search;
     const datetime = formatDateRangeForStacSearch(dateRange);
-    return datetime ? { ...search, datetime } : search;
-  }, [search, dateRange]);
+    if (datetime) {
+      searchWithDateRange = { ...search, datetime };
+    }
+    
+    if (viewportBounds && !search.bbox) {
+      searchWithDateRange = { ...searchWithDateRange, bbox: viewportBounds };
+    }
+    
+    return searchWithDateRange;
+  }, [search, dateRange, viewportBounds]);
 
   return useInfiniteQuery({
-    queryKey: ["search", searchWithDateRange, link, dateRange],
-    initialPageParam: updateLink(link, searchWithDateRange),
+    queryKey: ["search", searchWithFilters, link, dateRange, viewportBounds],
+    initialPageParam: updateLink(link, searchWithFilters),
     getNextPageParam: (lastPage: StacItemCollection) =>
       lastPage.links?.find((link) => link.rel == "next"),
     queryFn: fetchSearch,
@@ -52,6 +61,9 @@ function updateLink(link: StacLink, search: StacSearch) {
     }
     if (search.datetime) {
       url.searchParams.set("datetime", search.datetime);
+    }
+    if (search.bbox) {
+      url.searchParams.set("bbox", search.bbox.join(","));
     }
   } else {
     link.body = search;
