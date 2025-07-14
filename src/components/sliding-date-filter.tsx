@@ -329,7 +329,7 @@ export default function SlidingDateFilter({
         </HStack>
         {isClientFilterActive && (
           <Tooltip.Root>
-            <Tooltip.Trigger>
+            <Tooltip.Trigger asChild>
               <IconButton
                 size="sm"
                 variant="ghost"
@@ -423,7 +423,7 @@ export default function SlidingDateFilter({
       <Box px={2}>
         <HStack justify="flex-end" mb={1} gap={1}>
           <Tooltip.Root>
-            <Tooltip.Trigger>
+            <Tooltip.Trigger asChild>
               <IconButton
                 size="xs"
                 aria-label="Zoom in"
@@ -443,7 +443,7 @@ export default function SlidingDateFilter({
             </Tooltip.Positioner>
           </Tooltip.Root>
           <Tooltip.Root>
-            <Tooltip.Trigger>
+            <Tooltip.Trigger asChild>
               <IconButton
                 size="xs"
                 aria-label="Zoom out"
@@ -463,7 +463,7 @@ export default function SlidingDateFilter({
             </Tooltip.Positioner>
           </Tooltip.Root>
           <Tooltip.Root>
-            <Tooltip.Trigger>
+            <Tooltip.Trigger asChild>
               <IconButton
                 size="xs"
                 aria-label="Reset zoom"
