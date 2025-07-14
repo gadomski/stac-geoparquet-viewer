@@ -20,6 +20,9 @@ import {
   deserializeClientFilterDateRange,
 } from "../utils/url-persistence";
 import { createDateRangeFromTemporalExtent } from "../utils/date-filter";
+import { useDebounce } from "../hooks/use-debounce";
+
+const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 300;
 
 export function StacMapProvider({ children }: { children: ReactNode }) {
   const [href, setHref] = useState<string | undefined>(getInitialHref());
@@ -111,6 +114,34 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     );
   }, [clientFilterDateRange]);
 
+  const updateClientFilterUrl = useCallback((dateRange: DateRange) => {
+    const params = new URLSearchParams(location.search);
+    const clientFilterParam = serializeClientFilterDateRange(dateRange);
+
+    if (clientFilterParam) {
+      params.set("clientFilter", clientFilterParam);
+    } else {
+      params.delete("clientFilter");
+    }
+
+    const newUrl = `${location.pathname}?${params.toString()}`;
+    history.replaceState(null, "", newUrl);
+  }, []);
+
+  const debouncedClientFilterUpdate = useDebounce(
+    (dateRange: unknown) => {
+      if (
+        typeof dateRange === "object" &&
+        dateRange !== null &&
+        "startDate" in dateRange &&
+        "endDate" in dateRange
+      ) {
+        updateClientFilterUrl(dateRange as DateRange);
+      }
+    },
+    DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY
+  );
+
   useEffect(() => {
     function handlePopState() {
       setHref(new URLSearchParams(location.search).get("href") ?? "");
@@ -146,20 +177,8 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
   }, [dateRange]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const clientFilterParam = serializeClientFilterDateRange(
-      clientFilterDateRange,
-    );
-
-    if (clientFilterParam) {
-      params.set("clientFilter", clientFilterParam);
-    } else {
-      params.delete("clientFilter");
-    }
-
-    const newUrl = `${location.pathname}?${params.toString()}`;
-    history.replaceState(null, "", newUrl);
-  }, [clientFilterDateRange]);
+    debouncedClientFilterUpdate(clientFilterDateRange);
+  }, [clientFilterDateRange, debouncedClientFilterUpdate]);
 
   useEffect(() => {
     if (fileUpload.acceptedFiles.length == 1) {
