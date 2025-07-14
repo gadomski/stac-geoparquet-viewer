@@ -110,6 +110,10 @@ export default function SlidingDateFilter({
       return [sliderRange.min, sliderRange.min + defaultWindowSize];
     }
 
+    if (!clientFilterDateRange.startDate && !clientFilterDateRange.endDate) {
+      return [sliderRange.min, sliderRange.max];
+    }
+
     let startValue =
       clientFilterDateRange.startDate?.getTime() || sliderRange.min;
     let endValue =
@@ -525,13 +529,13 @@ export default function SlidingDateFilter({
         <Text fontWeight="medium">
           {clientFilterDateRange.startDate && clientFilterDateRange.endDate
             ? `${formatDate(clientFilterDateRange.startDate.getTime())} - ${formatDate(clientFilterDateRange.endDate.getTime())}`
-            : "No filter"}
+            : "Full range"}
         </Text>
       </HStack>
 
-      {isClientFilterActive && (
-        <Text fontSize="xs" color="green.600" fontWeight="medium">
-          ✓ Temporal filter is active
+      {!isClientFilterActive && (
+        <Text fontSize="xs" color="blue.600" fontWeight="medium">
+          Full range selected
         </Text>
       )}
     </VStack>
