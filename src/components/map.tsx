@@ -14,6 +14,10 @@ import {
 } from "react-map-gl/maplibre";
 import type { StacCollection } from "stac-ts";
 import useStacMap from "../hooks/stac-map";
+import {
+  useFilteredSearchItems,
+  useFilteredCollections,
+} from "../hooks/stac-filtered-data";
 import { useColorModeValue } from "./ui/color-mode";
 
 function DeckGLOverlay(props: DeckProps) {
@@ -46,8 +50,6 @@ export default function Map() {
   );
   const {
     value,
-    collections,
-    searchItems,
     stacGeoparquetTable,
     stacGeoparquetMetadata,
     stacGeoparquetItem,
@@ -55,6 +57,10 @@ export default function Map() {
     setPicked,
     picked,
   } = useStacMap();
+
+  const filteredSearchItems = useFilteredSearchItems();
+  const filteredCollections = useFilteredCollections();
+
   const [data, setData] = useState<GeoJSON | Feature[]>();
   const [visible, setVisible] = useState(true);
   const [filled, setFilled] = useState(true);
@@ -66,10 +72,12 @@ export default function Map() {
   useEffect(() => {
     switch (value?.type) {
       case "Catalog":
-        setBbbox(collections && getCollectionsExtent(collections));
+        setBbbox(
+          filteredCollections && getCollectionsExtent(filteredCollections),
+        );
         setData(
-          collections &&
-            collections.map((collection) =>
+          filteredCollections &&
+            filteredCollections.map((collection) =>
               bboxPolygon(collection.extent?.spatial?.bbox?.[0] as BBox),
             ),
         );
@@ -97,7 +105,7 @@ export default function Map() {
         setFilled(true);
         setPickable(true);
     }
-  }, [value, collections]);
+  }, [value, filteredCollections]);
 
   useEffect(() => {
     if (stacGeoparquetTable) {
@@ -161,14 +169,14 @@ export default function Map() {
   }, [bbox]);
 
   useEffect(() => {
-    if (searchItems.length > 0) {
+    if (filteredSearchItems.length > 0) {
       setVisible(false);
     } else {
       setVisible(true);
     }
-  }, [searchItems]);
+  }, [filteredSearchItems]);
 
-  const searchLayers = searchItems.map((items, index) => {
+  const searchLayers = filteredSearchItems.map((items, index) => {
     return new GeoJsonLayer({
       id: `search-${index}`,
       data: items as Feature[],
