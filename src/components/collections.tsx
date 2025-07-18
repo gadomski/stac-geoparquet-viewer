@@ -1,6 +1,6 @@
-import { Heading, Link, List, Stack } from "@chakra-ui/react";
+import { Heading, Stack } from "@chakra-ui/react";
 import type { StacCollection } from "stac-ts";
-import useStacMap from "../hooks/stac-map";
+import { CollectionCard } from "./collection";
 
 export default function Collections({
   collections,
@@ -10,27 +10,14 @@ export default function Collections({
   return (
     <Stack>
       <Heading size={"md"}>Collections</Heading>
-      <List.Root variant={"plain"} gap={1}>
+      <Stack>
         {collections.map((collection) => (
-          <CollectionListItem
+          <CollectionCard
             key={collection.id}
             collection={collection}
-          ></CollectionListItem>
+          ></CollectionCard>
         ))}
-      </List.Root>
+      </Stack>
     </Stack>
-  );
-}
-
-function CollectionListItem({ collection }: { collection: StacCollection }) {
-  const { setHref } = useStacMap();
-  const selfHref = collection.links.find((link) => link.rel === "self")?.href;
-
-  return (
-    <List.Item>
-      <Link onClick={() => selfHref && setHref(selfHref)}>
-        {collection.title || collection.id}
-      </Link>
-    </List.Item>
   );
 }
