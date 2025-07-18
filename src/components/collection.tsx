@@ -1,10 +1,12 @@
-import { DataList, Text } from "@chakra-ui/react";
+import { Box, Card, DataList, Link, Text } from "@chakra-ui/react";
 import { LuFolderPlus } from "react-icons/lu";
+import { MarkdownHooks } from "react-markdown";
 import type {
   StacCollection,
   SpatialExtent as StacSpatialExtent,
   TemporalExtent as StacTemporalExtent,
 } from "stac-ts";
+import useStacMap from "../hooks/stac-map";
 import { ValueInfo } from "./value";
 
 export default function Collection({
@@ -43,6 +45,35 @@ function CollectionInfo({ collection }: { collection: StacCollection }) {
         </DataList.Item>
       )}
     </DataList.Root>
+  );
+}
+
+export function CollectionCard({ collection }: { collection: StacCollection }) {
+  const { setHref } = useStacMap();
+  const selfHref = collection.links.find((link) => link.rel === "self")?.href;
+
+  return (
+    <Card.Root size={"sm"}>
+      <Card.Body>
+        <Card.Title>
+          <Link onClick={() => selfHref && setHref(selfHref)}>
+            {collection.title || collection.id}
+          </Link>
+        </Card.Title>
+        <Card.Description>
+          <Text lineClamp={2}>
+            <MarkdownHooks>{collection.description}</MarkdownHooks>
+          </Text>
+        </Card.Description>
+      </Card.Body>
+      <Card.Footer fontSize={"xs"} fontWeight={"lighter"}>
+        <SpatialExtent bbox={collection.extent.spatial.bbox[0]}></SpatialExtent>
+        <Box flex={1}></Box>
+        <TemporalExtent
+          interval={collection.extent.temporal.interval[0]}
+        ></TemporalExtent>
+      </Card.Footer>
+    </Card.Root>
   );
 }
 
