@@ -1,4 +1,5 @@
-import { Heading, Link, List, Stack } from "@chakra-ui/react";
+import { Card, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import { MarkdownHooks } from "react-markdown";
 import type { StacCollection } from "stac-ts";
 import useStacMap from "../hooks/stac-map";
 
@@ -10,27 +11,36 @@ export default function Collections({
   return (
     <Stack>
       <Heading size={"md"}>Collections</Heading>
-      <List.Root variant={"plain"} gap={1}>
+      <Stack>
         {collections.map((collection) => (
-          <CollectionListItem
+          <CollectionCard
             key={collection.id}
             collection={collection}
-          ></CollectionListItem>
+          ></CollectionCard>
         ))}
-      </List.Root>
+      </Stack>
     </Stack>
   );
 }
 
-function CollectionListItem({ collection }: { collection: StacCollection }) {
+function CollectionCard({ collection }: { collection: StacCollection }) {
   const { setHref } = useStacMap();
   const selfHref = collection.links.find((link) => link.rel === "self")?.href;
 
   return (
-    <List.Item>
-      <Link onClick={() => selfHref && setHref(selfHref)}>
-        {collection.title || collection.id}
-      </Link>
-    </List.Item>
+    <Card.Root size={"sm"}>
+      <Card.Body>
+        <Card.Title>
+          <Link onClick={() => selfHref && setHref(selfHref)}>
+            {collection.title || collection.id}
+          </Link>
+        </Card.Title>
+        <Card.Description>
+          <Text lineClamp={2}>
+            <MarkdownHooks>{collection.description}</MarkdownHooks>
+          </Text>
+        </Card.Description>
+      </Card.Body>
+    </Card.Root>
   );
 }
