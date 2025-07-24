@@ -63,22 +63,7 @@ export default function Map() {
   const [bbox, setBbbox] = useState<BBox>();
   const [stacGeoparquetLayer, setStacGeoparquetLayer] =
     useState<GeoArrowPolygonLayer>();
-  const padding = useBreakpointValue({
-    base: {
-      top: window.innerHeight / 10,
-      bottom: window.innerHeight / 20,
-      right: window.innerWidth / 20,
-      // TODO fix for smaller viewport
-      left: window.innerWidth / 20 + window.innerWidth / 3,
-    },
-    md: {
-      top: window.innerHeight / 10,
-      bottom: window.innerHeight / 20,
-      right: window.innerWidth / 20,
-      // TODO fix for smaller viewport
-      left: window.innerWidth / 20 + window.innerWidth / 3,
-    },
-  });
+  const small = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
     switch (value?.type) {
@@ -164,18 +149,25 @@ export default function Map() {
 
   useEffect(() => {
     if (bbox && mapRef.current) {
+      const padding = small
+        ? {
+            top: window.innerHeight / 10 + window.innerHeight / 2,
+            bottom: window.innerHeight / 20,
+            right: window.innerWidth / 20,
+            left: window.innerWidth / 20,
+          }
+        : {
+            top: window.innerHeight / 10,
+            bottom: window.innerHeight / 20,
+            right: window.innerWidth / 20,
+            left: window.innerWidth / 20 + window.innerWidth / 3,
+          };
       mapRef.current.fitBounds(sanitizeBbox(bbox), {
         linear: true,
-        padding: {
-          top: window.innerHeight / 10,
-          bottom: window.innerHeight / 20,
-          right: window.innerWidth / 20,
-          // TODO fix for smaller viewport
-          left: window.innerWidth / 20 + window.innerWidth / 3,
-        },
+        padding,
       });
     }
-  }, [bbox]);
+  }, [bbox, small]);
 
   useEffect(() => {
     if (searchItems.length > 0) {
