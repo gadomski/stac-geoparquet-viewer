@@ -60,8 +60,8 @@ export function CollectionCard({ collection }: { collection: StacCollection }) {
             {collection.title || collection.id}
           </Link>
         </Card.Title>
-        <Card.Description>
-          <Text lineClamp={2}>
+        <Card.Description as={"div"}>
+          <Text lineClamp={2} as={"div"}>
             <MarkdownHooks>{collection.description}</MarkdownHooks>
           </Text>
         </Card.Description>
