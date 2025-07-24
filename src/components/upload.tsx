@@ -1,4 +1,4 @@
-import { Box, FileUpload, Icon } from "@chakra-ui/react";
+import { Box, FileUpload, Icon, Link } from "@chakra-ui/react";
 import { LuUpload } from "react-icons/lu";
 import useStacMap from "../hooks/stac-map";
 
@@ -13,7 +13,13 @@ export default function Upload() {
           <LuUpload />
         </Icon>
         <FileUpload.DropzoneContent>
-          <Box>Drag and drop files here</Box>
+          <Box>
+            Drag and drop STAC JSON or{" "}
+            <Link href="https://github.com/stac-utils/stac-geoparquet/blob/main/spec/stac-geoparquet-spec.md">
+              GeoParquet
+            </Link>{" "}
+            here
+          </Box>
         </FileUpload.DropzoneContent>
       </FileUpload.Dropzone>
       <FileUpload.List />
