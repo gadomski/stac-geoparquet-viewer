@@ -1,10 +1,11 @@
 import {
-  Breadcrumb,
   Button,
   ButtonGroup,
+  DataList,
   Heading,
   HStack,
   Image,
+  Link,
   Stack,
 } from "@chakra-ui/react";
 import type { ReactNode } from "react";
@@ -58,62 +59,51 @@ export function ValueInfo({
 
   return (
     <Stack>
-      <Breadcrumb.Root size={"sm"}>
-        <Breadcrumb.List>
-          {rootHref !== selfHref && root && (
-            <>
-              <Breadcrumb.Item>
-                <Breadcrumb.Link
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setHref(rootHref);
-                  }}
-                >
-                  {(root.title as string) || root.id || "root"}
-                </Breadcrumb.Link>
-              </Breadcrumb.Item>
-              <Breadcrumb.Separator></Breadcrumb.Separator>
-            </>
-          )}
-          {parentHref !== rootHref && parent && (
-            <>
-              <Breadcrumb.Item>
-                <Breadcrumb.Link
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setHref(parentHref);
-                  }}
-                >
-                  {(parent.title as string) || parent.id || "parent"}
-                </Breadcrumb.Link>
-              </Breadcrumb.Item>
-              <Breadcrumb.Separator></Breadcrumb.Separator>
-            </>
-          )}
-          <Breadcrumb.Item>
-            <HStack>
-              {icon} {type || value.type}
-            </HStack>
-          </Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-      <Heading fontSize={(value.title && "larger") || "small"}>
-        {(value.title as string) ?? value.id ?? ""}
-      </Heading>
-      {thumbnailAsset && (
-        <Image
-          maxH={"200px"}
-          fit={"scale-down"}
-          src={thumbnailAsset.href}
-        ></Image>
-      )}
-      {!!value.description && (
-        <Prose>
-          <MarkdownHooks>{value.description as string}</MarkdownHooks>
-        </Prose>
-      )}
+      <HStack fontSize={"xs"} fontWeight={"light"}>
+        {icon} {type || value.type}
+      </HStack>
+      <Stack gap={4}>
+        <Heading fontSize={(value.title && "larger") || "small"}>
+          {(value.title as string) ?? value.id ?? ""}
+        </Heading>
+        {((root && rootHref != selfHref) ||
+          (parent && parentHref != rootHref)) && (
+          <DataList.Root orientation={"horizontal"} size={"sm"}>
+            {root && rootHref != selfHref && (
+              <DataList.Item>
+                <DataList.ItemLabel>Root</DataList.ItemLabel>
+                <DataList.ItemValue>
+                  <Link onClick={() => setHref(rootHref)}>
+                    {(root.title as string | undefined) || root.id || ""}
+                  </Link>
+                </DataList.ItemValue>
+              </DataList.Item>
+            )}
+            {parent && parentHref != rootHref && (
+              <DataList.Item>
+                <DataList.ItemLabel>Parent</DataList.ItemLabel>
+                <DataList.ItemValue>
+                  <Link onClick={() => setHref(parentHref)}>
+                    {(parent.title as string | undefined) || parent.id || ""}
+                  </Link>
+                </DataList.ItemValue>
+              </DataList.Item>
+            )}
+          </DataList.Root>
+        )}
+        {thumbnailAsset && (
+          <Image
+            maxH={"200px"}
+            fit={"scale-down"}
+            src={thumbnailAsset.href}
+          ></Image>
+        )}
+        {!!value.description && (
+          <Prose>
+            <MarkdownHooks>{value.description as string}</MarkdownHooks>
+          </Prose>
+        )}
+      </Stack>
       {children}
       <ButtonGroup size={"xs"} variant={"outline"}>
         {selfHref && (
