@@ -164,6 +164,9 @@ export default function SlidingDateFilter({
 
   const [visibleMin, setVisibleMin] = useState<number | null>(null);
   const [visibleMax, setVisibleMax] = useState<number | null>(null);
+  const [previousSliderValues, setPreviousSliderValues] = useState<
+    [number, number] | null
+  >(null);
 
   useEffect(() => {
     if (sliderRange.hasValidRange) {
@@ -193,11 +196,7 @@ export default function SlidingDateFilter({
       const clientStart = clientFilterDateRange.startDate.getTime();
       const clientEnd = clientFilterDateRange.endDate.getTime();
 
-      if (
-        clientStart < sliderRange.min ||
-        clientEnd > sliderRange.max ||
-        clientStart >= clientEnd
-      ) {
+      if (clientStart < sliderRange.min || clientEnd > sliderRange.max) {
         clearClientFilterDateRange();
       }
     }
@@ -206,7 +205,41 @@ export default function SlidingDateFilter({
   const handleSliderChange = (values: number[]) => {
     if (!sliderRange.hasValidRange || values.length !== 2) return;
 
-    const [startValue, endValue] = values;
+    let [startValue, endValue] = values;
+
+    // ensure minimum distance between sliders
+    const minDistance = sliderRange.step;
+    if (endValue - startValue < minDistance) {
+      if (previousSliderValues) {
+        const [prevStart, prevEnd] = previousSliderValues;
+        const startDiff = Math.abs(startValue - prevStart);
+        const endDiff = Math.abs(endValue - prevEnd);
+
+        if (startDiff > endDiff) {
+          endValue = startValue + minDistance;
+        } else {
+          startValue = endValue - minDistance;
+        }
+      } else {
+        if (startValue > endValue) {
+          endValue = startValue + minDistance;
+        } else {
+          startValue = endValue - minDistance;
+        }
+      }
+    }
+
+    startValue = Math.max(
+      sliderRange.min,
+      Math.min(sliderRange.max - minDistance, startValue),
+    );
+    endValue = Math.max(
+      startValue + minDistance,
+      Math.min(sliderRange.max, endValue),
+    );
+
+    setPreviousSliderValues([startValue, endValue]);
+
     const startDate = new Date(startValue);
     const endDate = new Date(endValue);
 
