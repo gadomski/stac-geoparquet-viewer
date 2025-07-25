@@ -13,7 +13,7 @@ export default function Upload() {
           <LuUpload />
         </Icon>
         <FileUpload.DropzoneContent>
-          <Box>Drag and drop files here</Box>
+          <Box>Drag and drop STAC JSON or GeoParquet here</Box>
         </FileUpload.DropzoneContent>
       </FileUpload.Dropzone>
       <FileUpload.List />

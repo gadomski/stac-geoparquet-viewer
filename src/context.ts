@@ -1,10 +1,10 @@
 import type { UseFileUploadReturn } from "@chakra-ui/react";
 import type { Table } from "apache-arrow";
+import type { BBox } from "geojson";
 import { createContext, type Dispatch, type SetStateAction } from "react";
 import type { StacCollection, StacItem } from "stac-ts";
-import type { StacGeoparquetMetadata, StacValue } from "../types/stac";
-import type { DateRange } from "../components/date-filter";
-import type { BBox } from "geojson";
+import type { DateRange } from "./components/date-filter";
+import type { StacGeoparquetMetadata, StacValue } from "./types/stac";
 
 export const StacMapContext = createContext<StacMapContextType | null>(null);
 
