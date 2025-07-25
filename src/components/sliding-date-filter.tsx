@@ -37,7 +37,7 @@ export default function SlidingDateFilter({
 
   const sliderRange = useMemo(() => {
     const defaultRange = { min: 0, max: 100, step: 1, hasValidRange: false };
-    
+
     const getExtent = () => {
       if (picked) {
         const ext = extractTemporalExtent(picked);
@@ -59,11 +59,11 @@ export default function SlidingDateFilter({
     const min = extent.start.getTime();
     const max = extent.end.getTime();
     const duration = max - min;
-    
+
     if (duration <= 0) return defaultRange;
-    
+
     const step = Math.max(1, Math.min(3600000, Math.floor(duration / 1000)));
-    
+
     return { min, max, step, hasValidRange: true };
   }, [value, picked, dateRange]);
 
@@ -73,35 +73,52 @@ export default function SlidingDateFilter({
   }, [sliderRange]);
 
   const currentSliderValues = useMemo(() => {
-    if (!sliderRange.hasValidRange) return [sliderRange.min, sliderRange.min + 86400000];
-    
+    if (!sliderRange.hasValidRange)
+      return [sliderRange.min, sliderRange.min + 86400000];
+
     const { startDate, endDate } = clientFilterDateRange;
     if (!startDate && !endDate) return [sliderRange.min, sliderRange.max];
-    
-    const start = Math.max(sliderRange.min, Math.min(sliderRange.max - 1, startDate?.getTime() || sliderRange.min));
-    const end = Math.max(start + 1, Math.min(sliderRange.max, endDate?.getTime() || start + windowSize));
-    
+
+    const start = Math.max(
+      sliderRange.min,
+      Math.min(sliderRange.max - 1, startDate?.getTime() || sliderRange.min),
+    );
+    const end = Math.max(
+      start + 1,
+      Math.min(sliderRange.max, endDate?.getTime() || start + windowSize),
+    );
+
     return [start, end];
   }, [sliderRange, clientFilterDateRange, windowSize]);
 
   const [dateInputs, setDateInputs] = useState({ start: "", end: "" });
-  const [prevSliderValues, setPrevSliderValues] = useState<[number, number] | null>(null);
+  const [prevSliderValues, setPrevSliderValues] = useState<
+    [number, number] | null
+  >(null);
 
   useEffect(() => {
     if (sliderRange.hasValidRange) {
       setDateInputs({
-        start: new Date(clientFilterDateRange.startDate?.getTime() || sliderRange.min).toISOString().split("T")[0],
-        end: new Date(clientFilterDateRange.endDate?.getTime() || sliderRange.max).toISOString().split("T")[0],
+        start: new Date(
+          clientFilterDateRange.startDate?.getTime() || sliderRange.min,
+        )
+          .toISOString()
+          .split("T")[0],
+        end: new Date(
+          clientFilterDateRange.endDate?.getTime() || sliderRange.max,
+        )
+          .toISOString()
+          .split("T")[0],
       });
     }
   }, [sliderRange, clientFilterDateRange]);
 
   const handleSliderChange = (values: number[]) => {
     if (!sliderRange.hasValidRange || values.length !== 2) return;
-    
+
     let [start, end] = values;
     const minDistance = sliderRange.step;
-    
+
     if (end - start < minDistance) {
       if (prevSliderValues) {
         const [prevStart, prevEnd] = prevSliderValues;
@@ -112,10 +129,13 @@ export default function SlidingDateFilter({
         }
       }
     }
-    
-    start = Math.max(sliderRange.min, Math.min(sliderRange.max - minDistance, start));
+
+    start = Math.max(
+      sliderRange.min,
+      Math.min(sliderRange.max - minDistance, start),
+    );
     end = Math.max(start + minDistance, Math.min(sliderRange.max, end));
-    
+
     setPrevSliderValues([start, end]);
     setClientFilterDateRange({
       startDate: new Date(start),
@@ -125,24 +145,33 @@ export default function SlidingDateFilter({
     });
   };
 
-  const handleDateChange = (type: 'start' | 'end', value: string) => {
-    setDateInputs(prev => ({ ...prev, [type]: value }));
+  const handleDateChange = (type: "start" | "end", value: string) => {
+    setDateInputs((prev) => ({ ...prev, [type]: value }));
     if (!value || !sliderRange.hasValidRange) return;
-    
+
     const date = new Date(value);
-    const isStart = type === 'start';
-    
+    const isStart = type === "start";
+
     setClientFilterDateRange({
-      startDate: isStart ? date : (clientFilterDateRange.startDate || new Date(date.getTime() - windowSize)),
-      endDate: isStart ? (clientFilterDateRange.endDate || new Date(date.getTime() + windowSize)) : date,
+      startDate: isStart
+        ? date
+        : clientFilterDateRange.startDate ||
+          new Date(date.getTime() - windowSize),
+      endDate: isStart
+        ? clientFilterDateRange.endDate || new Date(date.getTime() + windowSize)
+        : date,
       startTime: undefined,
       endTime: undefined,
     });
   };
 
-  const formatDate = (ts: number) => new Date(ts).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-  });
+  const formatDate = (ts: number) =>
+    new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   const formatDuration = (ms: number) => {
     const h = Math.floor(ms / 3600000);
@@ -152,8 +181,17 @@ export default function SlidingDateFilter({
 
   if (!sliderRange.hasValidRange) {
     return (
-      <Box p={4} borderWidth={1} borderRadius="md" bg="white" borderColor="gray.200" shadow="sm">
-        <Text fontSize="sm" color="gray.500">No temporal data available</Text>
+      <Box
+        p={4}
+        borderWidth={1}
+        borderRadius="md"
+        bg="white"
+        borderColor="gray.200"
+        shadow="sm"
+      >
+        <Text fontSize="sm" color="gray.500">
+          No temporal data available
+        </Text>
       </Box>
     );
   }
@@ -164,16 +202,33 @@ export default function SlidingDateFilter({
   };
 
   return (
-    <VStack gap={3} align="stretch" p={4} borderWidth={1} borderRadius="md" bg="white" borderColor="gray.200" shadow="sm">
+    <VStack
+      gap={3}
+      align="stretch"
+      p={4}
+      borderWidth={1}
+      borderRadius="md"
+      bg="white"
+      borderColor="gray.200"
+      shadow="sm"
+    >
       <HStack justify="space-between">
         <HStack>
           <LuCalendar />
-          <Text fontSize="sm" fontWeight="medium">{title}</Text>
+          <Text fontSize="sm" fontWeight="medium">
+            {title}
+          </Text>
         </HStack>
         {isClientFilterActive && (
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
-              <IconButton size="sm" variant="ghost" colorScheme="red" onClick={clearClientFilterDateRange} aria-label="Clear filter">
+              <IconButton
+                size="sm"
+                variant="ghost"
+                colorScheme="red"
+                onClick={clearClientFilterDateRange}
+                aria-label="Clear filter"
+              >
                 <LuX />
               </IconButton>
             </Tooltip.Trigger>
@@ -184,14 +239,22 @@ export default function SlidingDateFilter({
         )}
       </HStack>
 
-      {description && <Text fontSize="xs" color="gray.600">{description}</Text>}
+      {description && (
+        <Text fontSize="xs" color="gray.600">
+          {description}
+        </Text>
+      )}
 
       <VStack gap={2} align="stretch">
-        <Text fontSize="xs" fontWeight="medium">Window Range</Text>
+        <Text fontSize="xs" fontWeight="medium">
+          Window Range
+        </Text>
         <HStack gap={2}>
-          {(['start', 'end'] as const).map(type => (
+          {(["start", "end"] as const).map((type) => (
             <VStack key={type} gap={1} align="stretch" flex={1}>
-              <Text fontSize="xs" color="gray.600">{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+              <Text fontSize="xs" color="gray.600">
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Text>
               <Input
                 type="date"
                 size="sm"
@@ -207,7 +270,10 @@ export default function SlidingDateFilter({
 
       <HStack justify="space-between" fontSize="xs" color="gray.600">
         <Text>{formatDate(sliderRange.min)}</Text>
-        <Text>Range: {formatDuration(currentSliderValues[1] - currentSliderValues[0])}</Text>
+        <Text>
+          Range:{" "}
+          {formatDuration(currentSliderValues[1] - currentSliderValues[0])}
+        </Text>
         <Text>{formatDate(sliderRange.max)}</Text>
       </HStack>
 
@@ -238,7 +304,11 @@ export default function SlidingDateFilter({
         </Text>
       </HStack>
 
-      {!isClientFilterActive && <Text fontSize="xs" color="blue.600" fontWeight="medium">Full range selected</Text>}
+      {!isClientFilterActive && (
+        <Text fontSize="xs" color="blue.600" fontWeight="medium">
+          Full range selected
+        </Text>
+      )}
     </VStack>
   );
 }
