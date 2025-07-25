@@ -18,13 +18,18 @@ export default function App() {
             <Map></Map>
           </Box>
           <Container zIndex={1} fluid h={"dvh"} py={4} pointerEvents={"none"}>
-            <SimpleGrid columns={3} gap={4}>
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+              <GridItem colSpan={1} hideFrom={"md"}>
+                <Box pointerEvents={"auto"}>
+                  <Header></Header>
+                </Box>
+              </GridItem>
               <GridItem colSpan={1}>
                 <Box pointerEvents={"auto"}>
                   <Panel></Panel>
                 </Box>
               </GridItem>
-              <GridItem colSpan={2}>
+              <GridItem colSpan={2} hideBelow={"md"}>
                 <Box pointerEvents={"auto"}>
                   <Header></Header>
                 </Box>

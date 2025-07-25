@@ -69,7 +69,12 @@ export default function Panel() {
           <LuUpload></LuUpload>
         </Tabs.Trigger>
       </Tabs.List>
-      <Tabs.ContentGroup overflow={"scroll"} maxH={"80dvh"} px={4} pb={4}>
+      <Tabs.ContentGroup
+        overflow={"scroll"}
+        maxH={{ base: "40dvh", md: "80dvh" }}
+        px={4}
+        pb={4}
+      >
         <Tabs.Content value="value">
           {(value && <Value value={value}></Value>) || (
             <SkeletonText noOfLines={3}></SkeletonText>
