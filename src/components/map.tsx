@@ -56,7 +56,22 @@ export default function Map() {
     setStacGeoparquetItemId,
     setPicked,
     picked,
+    setViewportBounds,
   } = useStacMap();
+
+  useEffect(() => {
+    if (mapRef.current) {
+      const bounds = mapRef.current.getBounds();
+      if (bounds) {
+        setViewportBounds([
+          bounds.getWest(),
+          bounds.getSouth(),
+          bounds.getEast(),
+          bounds.getNorth(),
+        ]);
+      }
+    }
+  }, []);
 
   const filteredSearchItems = useFilteredSearchItems();
   const filteredCollections = useFilteredCollections();
@@ -218,6 +233,19 @@ export default function Map() {
     layers.push(stacGeoparquetLayer);
   }
 
+  const handleMapMove = () => {
+    if (mapRef.current) {
+      const bounds = mapRef.current.getBounds();
+      const viewportBbox: BBox = [
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth(),
+      ];
+      setViewportBounds(viewportBbox);
+    }
+  };
+
   return (
     <MaplibreMap
       id="map"
@@ -232,6 +260,7 @@ export default function Map() {
         width: "100dvw",
       }}
       mapStyle={`https://basemaps.cartocdn.com/gl/${mapStyle}/style.json`}
+      onMoveEnd={handleMapMove}
     >
       <DeckGLOverlay
         layers={layers}

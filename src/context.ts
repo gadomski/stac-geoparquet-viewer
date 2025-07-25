@@ -1,5 +1,6 @@
 import type { UseFileUploadReturn } from "@chakra-ui/react";
 import type { Table } from "apache-arrow";
+import type { BBox } from "geojson";
 import { createContext, type Dispatch, type SetStateAction } from "react";
 import type { StacCollection, StacItem } from "stac-ts";
 import type { DateRange } from "./components/date-filter";
@@ -37,4 +38,8 @@ interface StacMapContextType {
   isClientFilterActive: boolean;
 
   hasTemporalData: boolean;
+
+  viewportBounds: BBox | undefined;
+  setViewportBounds: (bounds: BBox | undefined) => void;
+  isViewportBoundsActive: boolean;
 }
