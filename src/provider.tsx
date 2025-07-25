@@ -1,11 +1,11 @@
 import { useFileUpload } from "@chakra-ui/react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { StacItem } from "stac-ts";
-import { StacMapContext } from "../context/stac-map";
-import { useStacCollections } from "../hooks/stac-collections";
-import useStacGeoparquet from "../hooks/stac-geoparquet";
-import useStacValue from "../hooks/stac-value";
-import type { StacValue } from "../types/stac";
+import { StacMapContext } from "./context";
+import { useStacCollections } from "./hooks/stac-collections";
+import useStacGeoparquet from "./hooks/stac-geoparquet";
+import useStacValue from "./hooks/stac-value";
+import type { StacValue } from "./types/stac";
 
 export function StacMapProvider({ children }: { children: ReactNode }) {
   const [href, setHref] = useState<string | undefined>(getInitialHref());

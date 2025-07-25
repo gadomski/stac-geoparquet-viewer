@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { StacMapContext } from "../context/stac-map";
+import { StacMapContext } from "../context";
 
 export default function useStacMap() {
   const context = useContext(StacMapContext);

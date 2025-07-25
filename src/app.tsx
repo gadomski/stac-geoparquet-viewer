@@ -5,7 +5,7 @@ import Header from "./components/header";
 import Map from "./components/map";
 import Panel from "./components/panel";
 import { Toaster } from "./components/ui/toaster";
-import { StacMapProvider } from "./provider/stac-map";
+import { StacMapProvider } from "./provider";
 
 export default function App() {
   const queryClient = new QueryClient({});
