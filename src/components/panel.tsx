@@ -1,4 +1,4 @@
-import { SkeletonText, Tabs, Accordion, HStack, Text } from "@chakra-ui/react";
+import { SkeletonText, Tabs, HStack, Text } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
   LuInfo,
@@ -90,36 +90,15 @@ export default function Panel() {
         </Tabs.Content>
         <Tabs.Content value="search">
           {value && itemSearchLinks.length > 0 && (
-            <Accordion.Root
-              variant="outline"
-              size="sm"
-              collapsible
-              defaultValue={["item-search"]}
-            >
-              <Accordion.Item value="item-search">
-                <Accordion.ItemTrigger>
-                  <HStack justify="space-between" width="100%">
-                    <Text fontSize="sm" fontWeight="medium">
-                      Item Search
-                    </Text>
-                    <Accordion.ItemIndicator />
-                  </HStack>
-                </Accordion.ItemTrigger>
-                <Accordion.ItemContent>
-                  <Accordion.ItemBody>
-                    <ItemSearch
-                      value={value}
-                      links={itemSearchLinks}
-                      defaultLink={itemSearchLinks[0]}
-                      dateRange={dateRange}
-                      setDateRange={setDateRange}
-                      clearDateRange={clearDateRange}
-                      isDateFilterActive={isDateFilterActive}
-                    />
-                  </Accordion.ItemBody>
-                </Accordion.ItemContent>
-              </Accordion.Item>
-            </Accordion.Root>
+            <ItemSearch
+              value={value}
+              links={itemSearchLinks}
+              defaultLink={itemSearchLinks[0]}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              clearDateRange={clearDateRange}
+              isDateFilterActive={isDateFilterActive}
+            />
           )}
         </Tabs.Content>
         <Tabs.Content value="filter">

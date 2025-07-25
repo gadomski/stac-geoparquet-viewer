@@ -62,9 +62,6 @@ export default function ItemSearch({
   return (
     <Stack gap={4}>
       <Stack>
-        <Text fontSize={"xs"} fontWeight={"light"}>
-          Item search
-        </Text>
         {value.type == "Collection" && (
           <Heading fontSize={"larger"}>{value.title || value.id}</Heading>
         )}

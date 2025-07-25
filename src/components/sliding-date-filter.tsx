@@ -175,10 +175,12 @@ export default function SlidingDateFilter({
     if (sliderRange.hasValidRange) {
       const currentVisibleMin = visibleMin ?? sliderRange.min;
       const currentVisibleMax = visibleMax ?? sliderRange.max;
-      
-      if (currentVisibleMin < sliderRange.min || 
-          currentVisibleMax > sliderRange.max ||
-          currentVisibleMin >= currentVisibleMax) {
+
+      if (
+        currentVisibleMin < sliderRange.min ||
+        currentVisibleMax > sliderRange.max ||
+        currentVisibleMin >= currentVisibleMax
+      ) {
         setVisibleMin(sliderRange.min);
         setVisibleMax(sliderRange.max);
       }
