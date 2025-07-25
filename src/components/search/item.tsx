@@ -11,7 +11,6 @@ import {
   Progress,
   Select,
   Stack,
-  Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { LuDownload, LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
@@ -19,15 +18,24 @@ import type { StacCollection, StacLink } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
 import type { StacSearch, StacValue } from "../../types/stac";
+import DateFilter, { type DateRange } from "../date-filter";
 
 export default function ItemSearch({
   value,
   defaultLink,
   links,
+  dateRange,
+  setDateRange,
+  clearDateRange,
+  isDateFilterActive,
 }: {
   value: StacValue;
   defaultLink: StacLink;
   links: StacLink[];
+  dateRange: DateRange;
+  setDateRange: (d: DateRange) => void;
+  clearDateRange: () => void;
+  isDateFilterActive: boolean;
 }) {
   const [search, setSearch] = useState<StacSearch>();
   const [link, setLink] = useState(defaultLink);
@@ -53,13 +61,18 @@ export default function ItemSearch({
   return (
     <Stack gap={4}>
       <Stack>
-        <Text fontSize={"xs"} fontWeight={"light"}>
-          Item search
-        </Text>
         {value.type == "Collection" && (
           <Heading fontSize={"larger"}>{value.title || value.id}</Heading>
         )}
       </Stack>
+      <DateFilter
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        clearDateRange={clearDateRange}
+        isDateFilterActive={isDateFilterActive}
+        title="Search Date Filter"
+        description="Filter items at the server level when searching"
+      />
       <Alert.Root status={"warning"}>
         <Alert.Indicator></Alert.Indicator>
         <Alert.Content>
@@ -144,7 +157,7 @@ function SearchResults({
   } = useStacSearch(search, link);
   const [numberMatched, setNumberMatched] = useState<number>();
   const [value, setValue] = useState<number | null>(null);
-  const { setSearchItems, setPicked } = useStacMap();
+  const { setSearchItems, setPicked, isDateFilterActive } = useStacMap();
   const [paused, setPaused] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -189,6 +202,16 @@ function SearchResults({
 
   return (
     <>
+      {isDateFilterActive && (
+        <Alert.Root status="info">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>
+              Showing results filtered by date range
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
+      )}
       <Progress.Root value={value} max={numberMatched}>
         <Progress.Label>
           {(value && `Found ${value} item${value === 1 ? "" : "s"}`) ||

@@ -13,39 +13,62 @@ import { useDuckDb } from "duckdb-wasm-kit";
 import { useEffect, useState } from "react";
 import * as stacWasm from "../stac-wasm";
 import type { StacGeoparquetMetadata } from "../types/stac";
+import type { DateRange } from "../components/date-filter";
+
+function createDateTime(date: Date, time?: string): Date {
+  if (!time) return date;
+
+  const [hours, minutes] = time.split(":").map(Number);
+  const datetime = new Date(date);
+  datetime.setHours(hours, minutes, 0, 0);
+  return datetime;
+}
+
+function getEffectiveStartDateTime(dateRange: DateRange): Date | null {
+  if (!dateRange.startDate) return null;
+  return createDateTime(dateRange.startDate, dateRange.startTime);
+}
+
+function getEffectiveEndDateTime(dateRange: DateRange): Date | null {
+  if (!dateRange.endDate) return null;
+  return createDateTime(dateRange.endDate, dateRange.endTime);
+}
 
 export default function useStacGeoparquet({
   path,
   id,
+  dateRange,
 }: {
   path: string | undefined;
   id: string | undefined;
+  dateRange: DateRange;
 }) {
   const { db } = useDuckDb();
   const [connection, setConnection] = useState<AsyncDuckDBConnection>();
+
   const { data: table } = useQuery({
-    queryKey: ["stac-geoparquet-table", path],
+    queryKey: ["stac-geoparquet-table", path, dateRange],
     queryFn: async () => {
       if (path && connection) {
-        return await getTable(path, connection);
+        return await getTable(path, connection, dateRange);
       }
     },
     enabled: !!(connection && path),
   });
   const { data: metadata } = useQuery({
-    queryKey: ["stac-geoparquet-metadata", path],
+    queryKey: ["stac-geoparquet-metadata", path, dateRange],
     queryFn: async () => {
       if (path && connection) {
-        return await getMetadata(path, connection);
+        return await getMetadata(path, connection, dateRange);
       }
     },
     enabled: !!(connection && path),
   });
   const { data: item } = useQuery({
-    queryKey: ["stac-geoparquet-item", path, id],
+    queryKey: ["stac-geoparquet-item", path, id, dateRange],
     queryFn: async () => {
       if (path && connection && id) {
-        return await getItem(path, connection, id);
+        return await getItem(path, connection, id, dateRange);
       }
     },
     enabled: !!(connection && path && id),
@@ -64,10 +87,30 @@ export default function useStacGeoparquet({
   return { table, metadata, item };
 }
 
-async function getTable(path: string, connection: AsyncDuckDBConnection) {
-  const result = await connection.query(
-    `SELECT ST_AsWKB(geometry) as geometry, id FROM read_parquet('${path}')`,
-  );
+async function getTable(
+  path: string,
+  connection: AsyncDuckDBConnection,
+  dateRange: DateRange,
+) {
+  let query = `SELECT ST_AsWKB(geometry) as geometry, id FROM read_parquet('${path}')`;
+
+  const effectiveStartDate = getEffectiveStartDateTime(dateRange);
+  const effectiveEndDate = getEffectiveEndDateTime(dateRange);
+
+  if (effectiveStartDate || effectiveEndDate) {
+    const conditions = [];
+    if (effectiveStartDate) {
+      conditions.push(`datetime >= '${effectiveStartDate.toISOString()}'`);
+    }
+    if (effectiveEndDate) {
+      conditions.push(`datetime <= '${effectiveEndDate.toISOString()}'`);
+    }
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+  }
+
+  const result = await connection.query(query);
   const geometry: Uint8Array[] = result.getChildAt(0)?.toArray();
   const wkb = new Uint8Array(geometry?.flatMap((array) => [...array]));
   const valueOffsets = new Int32Array(geometry.length + 1);
@@ -96,10 +139,27 @@ async function getTable(path: string, connection: AsyncDuckDBConnection) {
 async function getMetadata(
   path: string,
   connection: AsyncDuckDBConnection,
+  dateRange: DateRange,
 ): Promise<StacGeoparquetMetadata> {
-  const summaryResult = await connection.query(
-    `SELECT COUNT(*) as count, MIN(bbox.xmin) as xmin, MIN(bbox.ymin) as ymin, MAX(bbox.xmax) as xmax, MAX(bbox.ymax) as ymax FROM read_parquet('${path}')`,
-  );
+  let query = `SELECT COUNT(*) as count, MIN(bbox.xmin) as xmin, MIN(bbox.ymin) as ymin, MAX(bbox.xmax) as xmax, MAX(bbox.ymax) as ymax FROM read_parquet('${path}')`;
+
+  const effectiveStartDate = getEffectiveStartDateTime(dateRange);
+  const effectiveEndDate = getEffectiveEndDateTime(dateRange);
+
+  if (effectiveStartDate || effectiveEndDate) {
+    const conditions = [];
+    if (effectiveStartDate) {
+      conditions.push(`datetime >= '${effectiveStartDate.toISOString()}'`);
+    }
+    if (effectiveEndDate) {
+      conditions.push(`datetime <= '${effectiveEndDate.toISOString()}'`);
+    }
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+  }
+
+  const summaryResult = await connection.query(query);
   const summaryRow = summaryResult.toArray().map((row) => row.toJSON())[0];
 
   const kvMetadataResult = await connection.query(
@@ -132,10 +192,27 @@ async function getItem(
   path: string,
   connection: AsyncDuckDBConnection,
   id: string,
+  dateRange: DateRange,
 ) {
-  const result = await connection.query(
-    `SELECT * REPLACE ST_AsGeoJSON(geometry) as geometry FROM read_parquet('${path}') WHERE id = '${id}'`,
-  );
+  let query = `SELECT * REPLACE ST_AsGeoJSON(geometry) as geometry FROM read_parquet('${path}') WHERE id = '${id}'`;
+
+  const effectiveStartDate = getEffectiveStartDateTime(dateRange);
+  const effectiveEndDate = getEffectiveEndDateTime(dateRange);
+
+  if (effectiveStartDate || effectiveEndDate) {
+    const conditions = [];
+    if (effectiveStartDate) {
+      conditions.push(`datetime >= '${effectiveStartDate.toISOString()}'`);
+    }
+    if (effectiveEndDate) {
+      conditions.push(`datetime <= '${effectiveEndDate.toISOString()}'`);
+    }
+    if (conditions.length > 0) {
+      query += ` AND ${conditions.join(" AND ")}`;
+    }
+  }
+
+  const result = await connection.query(query);
   const item = stacWasm.arrowToStacJson(result)[0];
   item.geometry = JSON.parse(item.geometry);
   return item;

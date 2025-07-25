@@ -27,6 +27,7 @@ export interface StacSearch {
   collections?: string[];
   bbox?: number[];
   limit?: number;
+  datetime?: string; // ISO 8601 datetime range
 }
 
 export interface StacSearchRequest {
