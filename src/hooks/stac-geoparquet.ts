@@ -14,13 +14,8 @@ import { useEffect, useState } from "react";
 import * as stacWasm from "../stac-wasm";
 import type { StacGeoparquetMetadata } from "../types/stac";
 
-export default function useStacGeoparquet({
-  path,
-  id,
-}: {
-  path: string | undefined;
-  id: string | undefined;
-}) {
+export default function useStacGeoparquet(path: string | undefined) {
+  const [id, setId] = useState<string>();
   const { db } = useDuckDb();
   const [connection, setConnection] = useState<AsyncDuckDBConnection>();
   const { data: table } = useQuery({
@@ -61,7 +56,7 @@ export default function useStacGeoparquet({
     })();
   }, [db]);
 
-  return { table, metadata, item };
+  return { table, metadata, item, setId };
 }
 
 async function getTable(path: string, connection: AsyncDuckDBConnection) {

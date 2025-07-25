@@ -1,9 +1,9 @@
 import {
   Alert,
+  Box,
   Button,
   ButtonGroup,
   createListCollection,
-  DownloadTrigger,
   Heading,
   HStack,
   IconButton,
@@ -11,76 +11,72 @@ import {
   Progress,
   Select,
   Stack,
-  Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuDownload, LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
+import { LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
 import type { StacCollection, StacLink } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
-import type { StacSearch, StacValue } from "../../types/stac";
+import type { StacSearch } from "../../types/stac";
 
 export default function ItemSearch({
-  value,
-  defaultLink,
+  collection,
   links,
 }: {
-  value: StacValue;
-  defaultLink: StacLink;
+  collection: StacCollection;
   links: StacLink[];
 }) {
+  const { setItems, setPicked } = useStacMap();
   const [search, setSearch] = useState<StacSearch>();
-  const [link, setLink] = useState(defaultLink);
-  const [collections, setCollections] = useState<StacCollection[]>([]);
-  const [method, setMethod] = useState((defaultLink.method as string) || "GET");
-
-  const methods =
-    links.length > 1 &&
-    createListCollection({
-      items: links.map((link) => (link.method as string) || "GET"),
-    });
+  const [link, setLink] = useState<StacLink | undefined>(links[0]);
 
   useEffect(() => {
-    if (value?.type == "Collection") {
-      setCollections([value]);
+    if (!search) {
+      setItems(undefined);
+      setPicked(undefined);
     }
-  }, [value]);
+  }, [search, setItems, setPicked]);
 
-  useEffect(() => {
-    setLink(links.find((link) => link.method == method) || defaultLink);
-  }, [method, defaultLink, links]);
+  const methods = createListCollection({
+    items: links.map((link) => {
+      return {
+        label: (link.method as string) || "GET",
+        value: (link.method as string) || "GET",
+      };
+    }),
+  });
 
   return (
     <Stack gap={4}>
-      <Stack>
-        <Text fontSize={"xs"} fontWeight={"light"}>
-          Item search
-        </Text>
-        {value.type == "Collection" && (
-          <Heading fontSize={"larger"}>{value.title || value.id}</Heading>
-        )}
-      </Stack>
-      <Alert.Root status={"warning"}>
+      <Heading>Item search</Heading>
+
+      <Alert.Root status={"warning"} size={"sm"}>
         <Alert.Indicator></Alert.Indicator>
         <Alert.Content>
+          <Alert.Title>Under construction</Alert.Title>
           <Alert.Description>
-            Item search is under active development, and currently can't do very
-            much.
+            Item search is under active development and is relatively
+            under-powered at the moment.
           </Alert.Description>
         </Alert.Content>
       </Alert.Root>
-      {methods && (
+
+      <HStack>
+        <Box flex={1}></Box>
+
         <Select.Root
-          width={"180px"}
           collection={methods}
-          value={[method]}
-          onValueChange={(e) => setMethod(e.value[0])}
+          value={[link?.method as string]}
+          onValueChange={(e) =>
+            setLink(links.find((link) => (link.method || "GET") == e.value))
+          }
+          disabled={!!search}
+          maxW={100}
         >
-          <Select.HiddenSelect />
-          <Select.Label>Select search method</Select.Label>
+          <Select.HiddenSelect></Select.HiddenSelect>
           <Select.Control>
             <Select.Trigger>
-              <Select.ValueText placeholder="Search method" />
+              <Select.ValueText placeholder="Select search method" />
             </Select.Trigger>
             <Select.IndicatorGroup>
               <Select.Indicator />
@@ -90,152 +86,95 @@ export default function ItemSearch({
             <Select.Positioner>
               <Select.Content>
                 {methods.items.map((method) => (
-                  <Select.Item item={method} key={method}>
-                    {method}
-                    <Select.ItemIndicator></Select.ItemIndicator>
+                  <Select.Item item={method} key={method.value}>
+                    {method.label}
+                    <Select.ItemIndicator />
                   </Select.Item>
                 ))}
               </Select.Content>
             </Select.Positioner>
           </Portal>
         </Select.Root>
-      )}
-      <HStack>
-        {!search && (
-          <Button
-            variant={"surface"}
-            onClick={() =>
-              setSearch({
-                collections: collections.map((collection) => collection.id),
-              })
-            }
-          >
-            <LuSearch></LuSearch> Search
-          </Button>
-        )}
+
+        <Button
+          variant={"surface"}
+          onClick={() => setSearch({ collections: [collection.id] })}
+          disabled={!!search}
+        >
+          <LuSearch></LuSearch>
+          Search
+        </Button>
       </HStack>
-      {search && (
-        <SearchResults
-          link={link}
+
+      {search && link && (
+        <Results
           search={search}
-          setSearch={setSearch}
-        ></SearchResults>
+          link={link}
+          doClear={() => setSearch(undefined)}
+        ></Results>
       )}
     </Stack>
   );
 }
 
-function SearchResults({
-  link,
+function Results({
   search,
-  setSearch,
+  link,
+  doClear,
 }: {
-  link: StacLink;
   search: StacSearch;
-  setSearch: (search: StacSearch | undefined) => void;
+  link: StacLink;
+  doClear: () => void;
 }) {
-  const {
-    data,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    fetchNextPage,
-    isSuccess,
-  } = useStacSearch(search, link);
-  const [numberMatched, setNumberMatched] = useState<number>();
-  const [value, setValue] = useState<number | null>(null);
-  const { setSearchItems, setPicked } = useStacMap();
-  const [paused, setPaused] = useState(false);
-  const [done, setDone] = useState(false);
+  const { items, setItems } = useStacMap();
+  const { data, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useStacSearch(search, link);
+  const [pause, setPause] = useState(false);
 
   useEffect(() => {
-    if (data && !isFetchingNextPage) {
-      setNumberMatched(data.pages[0].numberMatched);
-      setSearchItems((current) =>
-        current.concat(
-          data.pages.slice(current.length).map((page) => page.features),
-        ),
-      );
-      setValue(
-        data.pages.map((page) => page.features.length).reduce((a, n) => a + n),
-      );
+    setItems(data?.pages.flatMap((page) => page.features));
+  }, [data, setItems]);
+
+  useEffect(() => {
+    if (!isFetchingNextPage && !pause && hasNextPage) {
+      fetchNextPage();
     }
-  }, [data, isFetchingNextPage, setSearchItems]);
-
-  useEffect(() => {
-    if (!isFetching) {
-      if (hasNextPage) {
-        if (!paused) {
-          fetchNextPage();
-        }
-      }
-    }
-  }, [paused, isFetching, hasNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    setDone(isSuccess && !hasNextPage);
-  }, [isSuccess, hasNextPage]);
-
-  const getItemCollection = () => {
-    const items = data?.pages.flatMap((page) => page.features);
-    return JSON.stringify({
-      type: "FeatureCollection",
-      features: items,
-      id: "search",
-      title: "Item search",
-      links: [link],
-    });
-  };
+  }, [isFetchingNextPage, pause, hasNextPage, fetchNextPage]);
 
   return (
-    <>
-      <Progress.Root value={value} max={numberMatched}>
-        <Progress.Label>
-          {(value && `Found ${value} item${value === 1 ? "" : "s"}`) ||
-            "Searching..."}
-        </Progress.Label>
-        <HStack>
-          <Progress.Track flex={"1"}>
-            <Progress.Range></Progress.Range>
-          </Progress.Track>
-          <Progress.ValueText></Progress.ValueText>
-        </HStack>
-      </Progress.Root>
-      <ButtonGroup variant={"subtle"}>
-        {!done && !paused && (
-          <IconButton onClick={() => setPaused(true)}>
-            <LuPause></LuPause>
-          </IconButton>
-        )}
-        {!done && paused && (
-          <IconButton onClick={() => setPaused(false)}>
-            <LuPlay></LuPlay>
-          </IconButton>
-        )}
-        {(done || paused) && (
-          <IconButton
-            onClick={() => {
-              setSearchItems([]);
-              setSearch(undefined);
-              setPicked(undefined);
-            }}
-          >
-            <LuX></LuX>
-          </IconButton>
-        )}
-        {done && (
-          <DownloadTrigger
-            data={getItemCollection}
-            fileName="search.json"
-            mimeType="application/json"
-            asChild
-          >
-            <IconButton variant={"subtle"}>
-              <LuDownload></LuDownload>
-            </IconButton>
-          </DownloadTrigger>
-        )}
-      </ButtonGroup>
-    </>
+    <Progress.Root
+      value={items ? items.length : null}
+      max={data?.pages[0]?.numberMatched}
+      maxW={"md"}
+    >
+      <HStack>
+        <Progress.Track flex={1}>
+          <Progress.Range></Progress.Range>
+        </Progress.Track>
+        <Progress.ValueText>
+          <HStack gap={2}>
+            {items?.length || "0"}
+
+            <ButtonGroup size={"xs"} variant={"subtle"} attached>
+              {(pause && (
+                <IconButton onClick={() => setPause(false)}>
+                  <LuPlay></LuPlay>
+                </IconButton>
+              )) || (
+                <IconButton
+                  disabled={!hasNextPage}
+                  onClick={() => setPause(true)}
+                >
+                  <LuPause></LuPause>
+                </IconButton>
+              )}
+              <IconButton onClick={doClear}>
+                <LuX></LuX>
+              </IconButton>
+            </ButtonGroup>
+          </HStack>
+        </Progress.ValueText>
+      </HStack>
+    </Progress.Root>
   );
 }

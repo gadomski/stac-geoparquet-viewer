@@ -20,19 +20,13 @@ export default function App() {
           <Container zIndex={1} fluid h={"dvh"} py={4} pointerEvents={"none"}>
             <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
               <GridItem colSpan={1} hideFrom={"md"}>
-                <Box pointerEvents={"auto"}>
-                  <Header></Header>
-                </Box>
+                <Header></Header>
               </GridItem>
               <GridItem colSpan={1}>
-                <Box pointerEvents={"auto"}>
-                  <Panel></Panel>
-                </Box>
+                <Panel></Panel>
               </GridItem>
               <GridItem colSpan={2} hideBelow={"md"}>
-                <Box pointerEvents={"auto"}>
-                  <Header></Header>
-                </Box>
+                <Header></Header>
               </GridItem>
             </SimpleGrid>
           </Container>

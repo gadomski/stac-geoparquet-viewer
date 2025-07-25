@@ -1,8 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import type { StacCollections } from "../types/stac";
+import type { StacCollections, StacValue } from "../types/stac";
 
-export function useStacCollections(href: string | undefined) {
+export function useStacCollections(value: StacValue | undefined) {
+  const href = value?.links?.find((link) => link.rel == "data")?.href;
   const { data, isFetching, hasNextPage, fetchNextPage } =
     useInfiniteQuery<StacCollections | null>({
       queryKey: ["collections", href],

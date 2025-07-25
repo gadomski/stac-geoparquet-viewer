@@ -40,6 +40,7 @@
     "@tanstack/react-query": "^5.81.5",
     "@turf/bbox": "^7.2.0",
     "@turf/bbox-polygon": "^7.2.0",
+    "@turf/helpers": "^7.2.0",
     "apache-arrow": "^19.0.0",
     "deck.gl": "^9.1.12",
     "duckdb-wasm-kit": "^0.1.38",

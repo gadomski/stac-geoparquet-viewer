@@ -5,23 +5,20 @@ import { StacMapContext } from "./context";
 import { useStacCollections } from "./hooks/stac-collections";
 import useStacGeoparquet from "./hooks/stac-geoparquet";
 import useStacValue from "./hooks/stac-value";
-import type { StacValue } from "./types/stac";
 
 export function StacMapProvider({ children }: { children: ReactNode }) {
   const [href, setHref] = useState<string | undefined>(getInitialHref());
   const fileUpload = useFileUpload({ maxFiles: 1 });
   const { value, parquetPath } = useStacValue(href, fileUpload);
-  const collections = useStacCollections(
-    value?.links?.find((link) => link.rel == "data")?.href,
-  );
-  const [stacGeoparquetItemId, setStacGeoparquetItemId] = useState<string>();
+  const collections = useStacCollections(value);
+  const [items, setItems] = useState<StacItem[]>();
   const {
     table: stacGeoparquetTable,
     metadata: stacGeoparquetMetadata,
+    setId: setStacGeoparquetItemId,
     item: stacGeoparquetItem,
-  } = useStacGeoparquet({ path: parquetPath, id: stacGeoparquetItemId });
-  const [picked, setPicked] = useState<StacValue>();
-  const [searchItems, setSearchItems] = useState<StacItem[][]>([]);
+  } = useStacGeoparquet(parquetPath);
+  const [picked, setPicked] = useState<StacItem>();
 
   useEffect(() => {
     function handlePopState() {
@@ -40,7 +37,6 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
         history.pushState(null, "", "?href=" + href);
       }
     }
-    setSearchItems([]);
   }, [href]);
 
   useEffect(() => {
@@ -54,26 +50,23 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     setPicked(stacGeoparquetItem);
   }, [stacGeoparquetItem]);
 
-  const contextValue = {
-    href,
-    setHref,
-    fileUpload,
-    value,
-    collections,
-    picked,
-    setPicked,
-
-    stacGeoparquetTable,
-    stacGeoparquetMetadata,
-    setStacGeoparquetItemId,
-    stacGeoparquetItem,
-
-    searchItems,
-    setSearchItems,
-  };
-
   return (
-    <StacMapContext.Provider value={contextValue}>
+    <StacMapContext.Provider
+      value={{
+        href,
+        setHref,
+        fileUpload,
+        value,
+        collections,
+        items,
+        setItems,
+        picked,
+        setPicked,
+        stacGeoparquetTable,
+        stacGeoparquetMetadata,
+        setStacGeoparquetItemId,
+      }}
+    >
       {children}
     </StacMapContext.Provider>
   );
