@@ -11,7 +11,6 @@ import {
   Progress,
   Select,
   Stack,
-  Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { LuDownload, LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";

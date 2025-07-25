@@ -12,13 +12,7 @@ import {
   Input,
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
-import {
-  LuCalendar,
-  LuX,
-  LuZoomIn,
-  LuZoomOut,
-  LuRefreshCw,
-} from "react-icons/lu";
+import { LuCalendar, LuX } from "react-icons/lu";
 
 import { extractTemporalExtent } from "../utils/date-filter";
 import useStacMap from "../hooks/stac-map";
@@ -281,43 +275,6 @@ export default function SlidingDateFilter({
     return `${minutes}m`;
   };
 
-  const clamp = (val: number, min: number, max: number) =>
-    Math.max(min, Math.min(max, val));
-
-  const handleZoom = (direction: "in" | "out") => {
-    if (
-      !sliderRange.hasValidRange ||
-      visibleMin === null ||
-      visibleMax === null
-    )
-      return;
-    const currentWindow = visibleMax - visibleMin;
-    const minWindow = 60 * 60 * 1000;
-    const maxWindow = sliderRange.max - sliderRange.min;
-    let newWindow = direction === "in" ? currentWindow / 2 : currentWindow * 2;
-    newWindow = clamp(newWindow, minWindow, maxWindow);
-    const center = (currentSliderValues[0] + currentSliderValues[1]) / 2;
-    let newMin = Math.round(center - newWindow / 2);
-    let newMax = Math.round(center + newWindow / 2);
-    if (newMin < sliderRange.min) {
-      newMin = sliderRange.min;
-      newMax = newMin + newWindow;
-    }
-    if (newMax > sliderRange.max) {
-      newMax = sliderRange.max;
-      newMin = newMax - newWindow;
-    }
-    setVisibleMin(newMin);
-    setVisibleMax(newMax);
-  };
-
-  const handleResetZoom = () => {
-    if (sliderRange.hasValidRange) {
-      setVisibleMin(sliderRange.min);
-      setVisibleMax(sliderRange.max);
-    }
-  };
-
   const bgColor = "white";
   const borderColor = "gray.200";
 
@@ -450,69 +407,6 @@ export default function SlidingDateFilter({
       </HStack>
 
       <Box px={2}>
-        <HStack justify="flex-end" mb={1} gap={1}>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Zoom in"
-                onClick={() => handleZoom("in")}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  visibleMax - visibleMin <= 60 * 60 * 1000 + 1
-                }
-              >
-                <LuZoomIn />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Zoom in</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Zoom out"
-                onClick={() => handleZoom("out")}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  visibleMax - visibleMin >= sliderRange.max - sliderRange.min
-                }
-              >
-                <LuZoomOut />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Zoom out</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Reset zoom"
-                onClick={handleResetZoom}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  (visibleMin === sliderRange.min &&
-                    visibleMax === sliderRange.max)
-                }
-              >
-                <LuRefreshCw />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Reset zoom</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-        </HStack>
         {sliderRange.hasValidRange &&
         currentSliderValues.length === 2 &&
         currentSliderValues[0] < currentSliderValues[1] &&
