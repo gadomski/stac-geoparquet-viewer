@@ -173,10 +173,20 @@ export default function SlidingDateFilter({
 
   useEffect(() => {
     if (sliderRange.hasValidRange) {
-      setVisibleMin(sliderRange.min);
-      setVisibleMax(sliderRange.max);
+      const currentVisibleMin = visibleMin ?? sliderRange.min;
+      const currentVisibleMax = visibleMax ?? sliderRange.max;
+      
+      if (currentVisibleMin < sliderRange.min || 
+          currentVisibleMax > sliderRange.max ||
+          currentVisibleMin >= currentVisibleMax) {
+        setVisibleMin(sliderRange.min);
+        setVisibleMax(sliderRange.max);
+      }
+    } else {
+      setVisibleMin(null);
+      setVisibleMax(null);
     }
-  }, [sliderRange]);
+  }, [sliderRange, visibleMin, visibleMax]);
 
   useEffect(() => {
     if (
