@@ -5,7 +5,12 @@
 
 The map-first STAC visualizer at <https://developmentseed.org/stac-map>.
 
-![stac-map](./img/stac-map.png)
+<!-- markdownlint-disable MD033 -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/stac-map-dark.png">
+  <img alt="stac-map with eoAPI DevSeed loaded in " src="img/stac-map-light.png">
+</picture>
+<!-- markdownlint-enable MD033 -->
 
 Includes:
 

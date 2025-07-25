@@ -52,7 +52,7 @@ function HrefInput() {
     >
       <Input
         bg={"bg.muted/90"}
-        placeholder="Enter a STAC url"
+        placeholder="Enter a STAC JSON or GeoParquet url"
         value={value}
         onChange={(e) => setValue(e.target.value)}
       ></Input>

@@ -7,23 +7,23 @@ import {
   type ReactNode,
 } from "react";
 import type { StacItem } from "stac-ts";
-import { StacMapContext } from "../context/stac-map";
-import { useStacCollections } from "../hooks/stac-collections";
-import useStacGeoparquet from "../hooks/stac-geoparquet";
-import useStacValue from "../hooks/stac-value";
-import type { StacValue } from "../types/stac";
-import type { DateRange } from "../components/date-filter";
-import {
-  serializeDateRange,
-  deserializeDateRange,
-  serializeClientFilterDateRange,
-  deserializeClientFilterDateRange,
-} from "../utils/url-persistence";
+import type { DateRange } from "./components/date-filter";
+import { StacMapContext } from "./context";
+import { useStacCollections } from "./hooks/stac-collections";
+import useStacGeoparquet from "./hooks/stac-geoparquet";
+import useStacValue from "./hooks/stac-value";
+import { useDebounce } from "./hooks/use-debounce";
+import type { StacValue } from "./types/stac";
 import {
   createDateRangeFromTemporalExtent,
   extractTemporalExtent,
-} from "../utils/date-filter";
-import { useDebounce } from "../hooks/use-debounce";
+} from "./utils/date-filter";
+import {
+  deserializeClientFilterDateRange,
+  deserializeDateRange,
+  serializeClientFilterDateRange,
+  serializeDateRange,
+} from "./utils/url-persistence";
 
 const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 300;
 
