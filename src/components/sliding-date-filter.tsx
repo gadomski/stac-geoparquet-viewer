@@ -12,14 +12,7 @@ import {
   Input,
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
-import {
-  LuCalendar,
-  LuX,
-  LuZoomIn,
-  LuZoomOut,
-  LuRefreshCw,
-} from "react-icons/lu";
-
+import { LuCalendar, LuX } from "react-icons/lu";
 import { extractTemporalExtent } from "../utils/date-filter";
 import useStacMap from "../hooks/stac-map";
 
@@ -43,271 +36,148 @@ export default function SlidingDateFilter({
   } = useStacMap();
 
   const sliderRange = useMemo(() => {
-    if (!value && !picked) {
-      return { min: 0, max: 100, step: 1, hasValidRange: false };
-    }
+    const defaultRange = { min: 0, max: 100, step: 1, hasValidRange: false };
 
-    const createValidRange = (start: Date, end: Date) => {
-      const min = start.getTime();
-      const max = end.getTime();
-
-      if (min >= max) {
-        return { min: 0, max: 100, step: 1, hasValidRange: false };
+    const getExtent = () => {
+      if (picked) {
+        const ext = extractTemporalExtent(picked);
+        if (ext) return { start: ext.start, end: ext.end };
       }
-
-      const totalDuration = max - min;
-      const step = Math.max(
-        1,
-        Math.min(60 * 60 * 1000, Math.floor(totalDuration / 1000)),
-      );
-
-      if (step <= 0 || step >= totalDuration) {
-        return { min: 0, max: 100, step: 1, hasValidRange: false };
+      if (dateRange.startDate && dateRange.endDate) {
+        return { start: dateRange.startDate, end: dateRange.endDate };
       }
-
-      return {
-        min,
-        max,
-        step,
-        hasValidRange: true,
-      };
+      if (value) {
+        const ext = extractTemporalExtent(value);
+        if (ext) return { start: ext.start, end: ext.end };
+      }
+      return null;
     };
 
-    if (picked) {
-      const pickedTemporalExtent = extractTemporalExtent(picked);
-      if (pickedTemporalExtent) {
-        return createValidRange(
-          pickedTemporalExtent.start,
-          pickedTemporalExtent.end,
-        );
-      }
-    }
+    const extent = getExtent();
+    if (!extent) return defaultRange;
 
-    if (dateRange.startDate && dateRange.endDate) {
-      return createValidRange(dateRange.startDate, dateRange.endDate);
-    }
+    const min = extent.start.getTime();
+    const max = extent.end.getTime();
+    const duration = max - min;
 
-    if (value) {
-      const temporalExtent = extractTemporalExtent(value);
-      if (temporalExtent) {
-        return createValidRange(temporalExtent.start, temporalExtent.end);
-      }
-    }
+    if (duration <= 0) return defaultRange;
 
-    return { min: 0, max: 100, step: 1, hasValidRange: false };
+    const step = Math.max(1, Math.min(3600000, Math.floor(duration / 1000)));
+
+    return { min, max, step, hasValidRange: true };
   }, [value, picked, dateRange]);
 
   const windowSize = useMemo(() => {
-    if (!sliderRange.hasValidRange) return 24 * 60 * 60 * 1000;
-
-    const totalDuration = sliderRange.max - sliderRange.min;
-    return Math.max(60 * 60 * 1000, totalDuration / 20);
+    if (!sliderRange.hasValidRange) return 86400000; // 24h
+    return Math.max(3600000, (sliderRange.max - sliderRange.min) / 20);
   }, [sliderRange]);
 
   const currentSliderValues = useMemo(() => {
-    if (!sliderRange.hasValidRange) {
-      const defaultWindowSize = 24 * 60 * 60 * 1000;
-      return [sliderRange.min, sliderRange.min + defaultWindowSize];
-    }
+    if (!sliderRange.hasValidRange)
+      return [sliderRange.min, sliderRange.min + 86400000];
 
-    if (!clientFilterDateRange.startDate && !clientFilterDateRange.endDate) {
-      return [sliderRange.min, sliderRange.max];
-    }
+    const { startDate, endDate } = clientFilterDateRange;
+    if (!startDate && !endDate) return [sliderRange.min, sliderRange.max];
 
-    let startValue =
-      clientFilterDateRange.startDate?.getTime() || sliderRange.min;
-    let endValue =
-      clientFilterDateRange.endDate?.getTime() || startValue + windowSize;
-
-    startValue = Math.max(
+    const start = Math.max(
       sliderRange.min,
-      Math.min(sliderRange.max - 1, startValue),
+      Math.min(sliderRange.max - 1, startDate?.getTime() || sliderRange.min),
     );
-    endValue = Math.max(startValue + 1, Math.min(sliderRange.max, endValue));
+    const end = Math.max(
+      start + 1,
+      Math.min(sliderRange.max, endDate?.getTime() || start + windowSize),
+    );
 
-    if (
-      startValue >= endValue ||
-      startValue < sliderRange.min ||
-      endValue > sliderRange.max
-    ) {
-      const midPoint =
-        sliderRange.min + (sliderRange.max - sliderRange.min) / 2;
-      const halfWindow = windowSize / 2;
-      startValue = Math.max(sliderRange.min, midPoint - halfWindow);
-      endValue = Math.min(sliderRange.max, startValue + windowSize);
-    }
+    return [start, end];
+  }, [sliderRange, clientFilterDateRange, windowSize]);
 
-    return [startValue, endValue];
-  }, [
-    sliderRange,
-    clientFilterDateRange.startDate,
-    clientFilterDateRange.endDate,
-    windowSize,
-  ]);
-
-  const [windowStartDate, setWindowStartDate] = useState<string>("");
-  const [windowEndDate, setWindowEndDate] = useState<string>("");
+  const [dateInputs, setDateInputs] = useState({ start: "", end: "" });
+  const [prevSliderValues, setPrevSliderValues] = useState<
+    [number, number] | null
+  >(null);
 
   useEffect(() => {
     if (sliderRange.hasValidRange) {
-      setWindowStartDate(new Date(sliderRange.min).toISOString().split("T")[0]);
-      setWindowEndDate(new Date(sliderRange.max).toISOString().split("T")[0]);
+      setDateInputs({
+        start: new Date(
+          clientFilterDateRange.startDate?.getTime() || sliderRange.min,
+        )
+          .toISOString()
+          .split("T")[0],
+        end: new Date(
+          clientFilterDateRange.endDate?.getTime() || sliderRange.max,
+        )
+          .toISOString()
+          .split("T")[0],
+      });
     }
-  }, [sliderRange]);
-
-  useEffect(() => {
-    if (clientFilterDateRange.startDate) {
-      setWindowStartDate(
-        clientFilterDateRange.startDate.toISOString().split("T")[0],
-      );
-    }
-    if (clientFilterDateRange.endDate) {
-      setWindowEndDate(
-        clientFilterDateRange.endDate.toISOString().split("T")[0],
-      );
-    }
-  }, [clientFilterDateRange]);
-
-  const [visibleMin, setVisibleMin] = useState<number | null>(null);
-  const [visibleMax, setVisibleMax] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (sliderRange.hasValidRange) {
-      setVisibleMin(sliderRange.min);
-      setVisibleMax(sliderRange.max);
-    }
-  }, [sliderRange]);
-
-  useEffect(() => {
-    if (
-      sliderRange.hasValidRange &&
-      clientFilterDateRange.startDate &&
-      clientFilterDateRange.endDate
-    ) {
-      const clientStart = clientFilterDateRange.startDate.getTime();
-      const clientEnd = clientFilterDateRange.endDate.getTime();
-
-      if (
-        clientStart < sliderRange.min ||
-        clientEnd > sliderRange.max ||
-        clientStart >= clientEnd
-      ) {
-        clearClientFilterDateRange();
-      }
-    }
-  }, [sliderRange, clientFilterDateRange, clearClientFilterDateRange]);
+  }, [sliderRange, clientFilterDateRange]);
 
   const handleSliderChange = (values: number[]) => {
     if (!sliderRange.hasValidRange || values.length !== 2) return;
 
-    const [startValue, endValue] = values;
-    const startDate = new Date(startValue);
-    const endDate = new Date(endValue);
+    let [start, end] = values;
+    const minDistance = sliderRange.step;
 
+    if (end - start < minDistance) {
+      if (prevSliderValues) {
+        const [prevStart, prevEnd] = prevSliderValues;
+        if (Math.abs(start - prevStart) > Math.abs(end - prevEnd)) {
+          end = start + minDistance;
+        } else {
+          start = end - minDistance;
+        }
+      }
+    }
+
+    start = Math.max(
+      sliderRange.min,
+      Math.min(sliderRange.max - minDistance, start),
+    );
+    end = Math.max(start + minDistance, Math.min(sliderRange.max, end));
+
+    setPrevSliderValues([start, end]);
     setClientFilterDateRange({
-      startDate,
-      endDate,
+      startDate: new Date(start),
+      endDate: new Date(end),
       startTime: undefined,
       endTime: undefined,
     });
   };
 
-  const handleWindowStartDateChange = (dateString: string) => {
-    setWindowStartDate(dateString);
-    if (dateString && sliderRange.hasValidRange) {
-      const startDate = new Date(dateString);
-      const endDate =
-        clientFilterDateRange.endDate ||
-        new Date(startDate.getTime() + windowSize);
+  const handleDateChange = (type: "start" | "end", value: string) => {
+    setDateInputs((prev) => ({ ...prev, [type]: value }));
+    if (!value || !sliderRange.hasValidRange) return;
 
-      setClientFilterDateRange({
-        startDate,
-        endDate,
-        startTime: undefined,
-        endTime: undefined,
-      });
-    }
+    const date = new Date(value);
+    const isStart = type === "start";
+
+    setClientFilterDateRange({
+      startDate: isStart
+        ? date
+        : clientFilterDateRange.startDate ||
+          new Date(date.getTime() - windowSize),
+      endDate: isStart
+        ? clientFilterDateRange.endDate || new Date(date.getTime() + windowSize)
+        : date,
+      startTime: undefined,
+      endTime: undefined,
+    });
   };
 
-  const handleWindowEndDateChange = (dateString: string) => {
-    setWindowEndDate(dateString);
-    if (dateString && sliderRange.hasValidRange) {
-      const endDate = new Date(dateString);
-      const startDate =
-        clientFilterDateRange.startDate ||
-        new Date(endDate.getTime() - windowSize);
-
-      setClientFilterDateRange({
-        startDate,
-        endDate,
-        startTime: undefined,
-        endTime: undefined,
-      });
-    }
-  };
-
-  const handleClear = () => {
-    clearClientFilterDateRange();
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("en-US", {
+  const formatDate = (ts: number) =>
+    new Date(ts).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
   const formatDuration = (ms: number) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
-
-  const clamp = (val: number, min: number, max: number) =>
-    Math.max(min, Math.min(max, val));
-
-  const handleZoom = (direction: "in" | "out") => {
-    if (
-      !sliderRange.hasValidRange ||
-      visibleMin === null ||
-      visibleMax === null
-    )
-      return;
-    const currentWindow = visibleMax - visibleMin;
-    const minWindow = 60 * 60 * 1000;
-    const maxWindow = sliderRange.max - sliderRange.min;
-    let newWindow = direction === "in" ? currentWindow / 2 : currentWindow * 2;
-    newWindow = clamp(newWindow, minWindow, maxWindow);
-    const center = (currentSliderValues[0] + currentSliderValues[1]) / 2;
-    let newMin = Math.round(center - newWindow / 2);
-    let newMax = Math.round(center + newWindow / 2);
-    if (newMin < sliderRange.min) {
-      newMin = sliderRange.min;
-      newMax = newMin + newWindow;
-    }
-    if (newMax > sliderRange.max) {
-      newMax = sliderRange.max;
-      newMin = newMax - newWindow;
-    }
-    setVisibleMin(newMin);
-    setVisibleMax(newMax);
-  };
-
-  const handleResetZoom = () => {
-    if (sliderRange.hasValidRange) {
-      setVisibleMin(sliderRange.min);
-      setVisibleMax(sliderRange.max);
-    }
-  };
-
-  const bgColor = "white";
-  const borderColor = "gray.200";
 
   if (!sliderRange.hasValidRange) {
     return (
@@ -315,8 +185,8 @@ export default function SlidingDateFilter({
         p={4}
         borderWidth={1}
         borderRadius="md"
-        bg={bgColor}
-        borderColor={borderColor}
+        bg="white"
+        borderColor="gray.200"
         shadow="sm"
       >
         <Text fontSize="sm" color="gray.500">
@@ -326,6 +196,11 @@ export default function SlidingDateFilter({
     );
   }
 
+  const windowRange = {
+    min: new Date(sliderRange.min).toISOString().split("T")[0],
+    max: new Date(sliderRange.max).toISOString().split("T")[0],
+  };
+
   return (
     <VStack
       gap={3}
@@ -333,11 +208,11 @@ export default function SlidingDateFilter({
       p={4}
       borderWidth={1}
       borderRadius="md"
-      bg={bgColor}
-      borderColor={borderColor}
+      bg="white"
+      borderColor="gray.200"
       shadow="sm"
     >
-      <HStack justify="space-between" align="center">
+      <HStack justify="space-between">
         <HStack>
           <LuCalendar />
           <Text fontSize="sm" fontWeight="medium">
@@ -351,7 +226,7 @@ export default function SlidingDateFilter({
                 size="sm"
                 variant="ghost"
                 colorScheme="red"
-                onClick={handleClear}
+                onClick={clearClientFilterDateRange}
                 aria-label="Clear filter"
               >
                 <LuX />
@@ -375,166 +250,49 @@ export default function SlidingDateFilter({
           Window Range
         </Text>
         <HStack gap={2}>
-          <VStack gap={1} align="stretch" flex={1}>
-            <Text fontSize="xs" color="gray.600">
-              Start
-            </Text>
-            <Input
-              type="date"
-              size="sm"
-              value={windowStartDate}
-              onChange={(e) => handleWindowStartDateChange(e.target.value)}
-              min={
-                sliderRange.hasValidRange
-                  ? new Date(sliderRange.min).toISOString().split("T")[0]
-                  : undefined
-              }
-              max={
-                sliderRange.hasValidRange
-                  ? new Date(sliderRange.max).toISOString().split("T")[0]
-                  : undefined
-              }
-              disabled={!sliderRange.hasValidRange}
-            />
-          </VStack>
-          <VStack gap={1} align="stretch" flex={1}>
-            <Text fontSize="xs" color="gray.600">
-              End
-            </Text>
-            <Input
-              type="date"
-              size="sm"
-              value={windowEndDate}
-              onChange={(e) => handleWindowEndDateChange(e.target.value)}
-              min={
-                sliderRange.hasValidRange
-                  ? new Date(sliderRange.min).toISOString().split("T")[0]
-                  : undefined
-              }
-              max={
-                sliderRange.hasValidRange
-                  ? new Date(sliderRange.max).toISOString().split("T")[0]
-                  : undefined
-              }
-              disabled={!sliderRange.hasValidRange}
-            />
-          </VStack>
+          {(["start", "end"] as const).map((type) => (
+            <VStack key={type} gap={1} align="stretch" flex={1}>
+              <Text fontSize="xs" color="gray.600">
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Text>
+              <Input
+                type="date"
+                size="sm"
+                value={dateInputs[type]}
+                onChange={(e) => handleDateChange(type, e.target.value)}
+                min={windowRange.min}
+                max={windowRange.max}
+              />
+            </VStack>
+          ))}
         </HStack>
       </VStack>
 
       <HStack justify="space-between" fontSize="xs" color="gray.600">
-        <Text>
-          {sliderRange.hasValidRange ? formatDate(sliderRange.min) : "Invalid"}
-        </Text>
+        <Text>{formatDate(sliderRange.min)}</Text>
         <Text>
           Range:{" "}
-          {sliderRange.hasValidRange && currentSliderValues.length === 2
-            ? formatDuration(currentSliderValues[1] - currentSliderValues[0])
-            : "Invalid"}
+          {formatDuration(currentSliderValues[1] - currentSliderValues[0])}
         </Text>
-        <Text>
-          {sliderRange.hasValidRange ? formatDate(sliderRange.max) : "Invalid"}
-        </Text>
+        <Text>{formatDate(sliderRange.max)}</Text>
       </HStack>
 
       <Box px={2}>
-        <HStack justify="flex-end" mb={1} gap={1}>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Zoom in"
-                onClick={() => handleZoom("in")}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  visibleMax - visibleMin <= 60 * 60 * 1000 + 1
-                }
-              >
-                <LuZoomIn />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Zoom in</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Zoom out"
-                onClick={() => handleZoom("out")}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  visibleMax - visibleMin >= sliderRange.max - sliderRange.min
-                }
-              >
-                <LuZoomOut />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Zoom out</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <IconButton
-                size="xs"
-                aria-label="Reset zoom"
-                onClick={handleResetZoom}
-                disabled={
-                  !sliderRange.hasValidRange ||
-                  visibleMax === null ||
-                  visibleMin === null ||
-                  (visibleMin === sliderRange.min &&
-                    visibleMax === sliderRange.max)
-                }
-              >
-                <LuRefreshCw />
-              </IconButton>
-            </Tooltip.Trigger>
-            <Tooltip.Positioner>
-              <Tooltip.Content>Reset zoom</Tooltip.Content>
-            </Tooltip.Positioner>
-          </Tooltip.Root>
-        </HStack>
-        {sliderRange.hasValidRange &&
-        currentSliderValues.length === 2 &&
-        currentSliderValues[0] < currentSliderValues[1] &&
-        (visibleMin ?? sliderRange.min) < (visibleMax ?? sliderRange.max) &&
-        sliderRange.step > 0 ? (
-          <Slider.Root
-            value={currentSliderValues}
-            min={visibleMin ?? sliderRange.min}
-            max={visibleMax ?? sliderRange.max}
-            step={sliderRange.step}
-            onValueChange={(details) => handleSliderChange(details.value)}
-          >
-            <Slider.Control>
-              <SliderTrack>
-                <SliderRange bg="blue.500" />
-              </SliderTrack>
-              <SliderThumb index={0} />
-              <SliderThumb index={1} />
-            </Slider.Control>
-          </Slider.Root>
-        ) : (
-          <Box
-            height="20px"
-            bg="gray.100"
-            borderRadius="md"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Text fontSize="xs" color="gray.500">
-              Invalid date range
-            </Text>
-          </Box>
-        )}
+        <Slider.Root
+          value={currentSliderValues}
+          min={sliderRange.min}
+          max={sliderRange.max}
+          step={sliderRange.step}
+          onValueChange={(details) => handleSliderChange(details.value)}
+        >
+          <Slider.Control>
+            <SliderTrack>
+              <SliderRange bg="blue.500" />
+            </SliderTrack>
+            <SliderThumb index={0} />
+            <SliderThumb index={1} />
+          </Slider.Control>
+        </Slider.Root>
       </Box>
 
       <HStack justify="space-between" fontSize="xs">

@@ -12,7 +12,7 @@ import {
   Select,
   Stack,
   Switch,
-  Text,
+  Text
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
@@ -84,9 +84,6 @@ export default function ItemSearch({
   return (
     <Stack gap={4}>
       <Stack>
-        <Text fontSize={"xs"} fontWeight={"light"}>
-          Item search
-        </Text>
         {value.type == "Collection" && (
           <Heading fontSize={"larger"}>{value.title || value.id}</Heading>
         )}
