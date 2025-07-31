@@ -41,6 +41,9 @@ function updateLink(link: StacLink, search: StacSearch) {
     if (search.collections) {
       url.searchParams.set("collections", search.collections.join(","));
     }
+    if (search.bbox) {
+      url.searchParams.set("bbox", search.bbox.join(","));
+    }
     if (search.datetime) {
       url.searchParams.set("datetime", search.datetime);
     }

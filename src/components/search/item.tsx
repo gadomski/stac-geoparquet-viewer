@@ -14,9 +14,12 @@ import {
   Progress,
   Select,
   Stack,
+  Switch,
+  Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
+import { useMap } from "react-map-gl/maplibre";
 import type { StacCollection, StacLink, TemporalExtent } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
@@ -34,6 +37,8 @@ export default function ItemSearch({
   const [search, setSearch] = useState<StacSearch>();
   const [link, setLink] = useState<StacLink | undefined>(links[0]);
   const [datetime, setDatetime] = useState<string>();
+  const [useViewportBounds, setUseViewportBounds] = useState(true);
+  const { map } = useMap();
 
   useEffect(() => {
     if (!search) {
@@ -65,6 +70,18 @@ export default function ItemSearch({
           </Alert.Description>
         </Alert.Content>
       </Alert.Root>
+
+      <Switch.Root
+        disabled={!map}
+        checked={!!map && useViewportBounds}
+        onCheckedChange={(e) => setUseViewportBounds(e.checked)}
+      >
+        <Switch.HiddenInput></Switch.HiddenInput>
+        <Switch.Label>Use viewport bounds</Switch.Label>
+        <Switch.Control></Switch.Control>
+      </Switch.Root>
+
+      <Text></Text>
 
       <Datetime
         interval={collection.extent?.temporal?.interval[0]}
@@ -108,7 +125,16 @@ export default function ItemSearch({
 
         <Button
           variant={"surface"}
-          onClick={() => setSearch({ collections: [collection.id], datetime })}
+          onClick={() =>
+            setSearch({
+              collections: [collection.id],
+              datetime,
+              bbox:
+                useViewportBounds && map
+                  ? map.getBounds().toArray().flat()
+                  : undefined,
+            })
+          }
           disabled={!!search}
         >
           <LuSearch></LuSearch>
