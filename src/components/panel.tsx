@@ -5,6 +5,7 @@ import {
   LuMousePointerClick,
   LuSearch,
   LuUpload,
+  LuFilter,
 } from "react-icons/lu";
 import type { StacLink } from "stac-ts";
 import useStacMap from "../hooks/stac-map";
@@ -12,9 +13,18 @@ import useStacValue from "../hooks/stac-value";
 import ItemSearch from "./search/item";
 import Upload from "./upload";
 import Value from "./value";
+import Filter from "./filter";
 
 export default function Panel() {
-  const { value, picked } = useStacMap();
+  const {
+    value,
+    picked,
+    dateRange,
+    setDateRange,
+    clearDateRange,
+    isDateFilterActive,
+    hasTemporalData,
+  } = useStacMap();
   const [tab, setTab] = useState<string>("upload");
   const [itemSearchLinks, setItemSearchLinks] = useState<StacLink[]>([]);
   const { value: root } = useStacValue(
@@ -62,6 +72,9 @@ export default function Panel() {
         >
           <LuSearch></LuSearch>
         </Tabs.Trigger>
+        <Tabs.Trigger value="filter" disabled={!hasTemporalData}>
+          <LuFilter></LuFilter>
+        </Tabs.Trigger>
         <Tabs.Trigger value="picked" disabled={!picked}>
           <LuMousePointerClick></LuMousePointerClick>
         </Tabs.Trigger>
@@ -86,8 +99,15 @@ export default function Panel() {
               value={value}
               links={itemSearchLinks}
               defaultLink={itemSearchLinks[0]}
-            ></ItemSearch>
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              clearDateRange={clearDateRange}
+              isDateFilterActive={isDateFilterActive}
+            />
           )}
+        </Tabs.Content>
+        <Tabs.Content value="filter">
+          <Filter />
         </Tabs.Content>
         <Tabs.Content value="picked">
           {picked && <Value value={picked}></Value>}
