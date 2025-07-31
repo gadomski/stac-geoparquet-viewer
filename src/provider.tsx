@@ -79,11 +79,12 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     }
   }, DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY);
 
-  const [debouncedStacGeoparquetParams, setDebouncedStacGeoparquetParams] = useState({
-    path: parquetPath,
-    id: stacGeoparquetItemId,
-    dateRange: clientFilterDateRange,
-  });
+  const [debouncedStacGeoparquetParams, setDebouncedStacGeoparquetParams] =
+    useState({
+      path: parquetPath,
+      id: stacGeoparquetItemId,
+      dateRange: clientFilterDateRange,
+    });
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -217,7 +218,7 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
 
   const hasTemporalData = useMemo(() => {
     if (stacGeoparquetMetadata?.temporalExtent) return true;
-    
+
     if (picked) return !!extractTemporalExtent(picked);
     if (value) return !!extractTemporalExtent(value);
     return false;
