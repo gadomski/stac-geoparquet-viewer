@@ -20,12 +20,13 @@ async function fetchSearch({ pageParam }: { pageParam: StacLink }) {
       "Content-type": "application/json",
     },
     body: (pageParam.body as StacSearch) && JSON.stringify(pageParam.body),
-  }).then((response) => {
+  }).then(async (response) => {
     if (response.ok) {
       return response.json();
     } else {
+      const text = await response.text();
       throw new Error(
-        `Could not ${pageParam.method || "GET"} ${pageParam.href}: ${response.statusText}`,
+        `Could not ${pageParam.method || "GET"} ${pageParam.href}: ${response.statusText}: ${text}`,
       );
     }
   });
@@ -39,6 +40,12 @@ function updateLink(link: StacLink, search: StacSearch) {
   if (link.method == "GET") {
     if (search.collections) {
       url.searchParams.set("collections", search.collections.join(","));
+    }
+    if (search.bbox) {
+      url.searchParams.set("bbox", search.bbox.join(","));
+    }
+    if (search.datetime) {
+      url.searchParams.set("datetime", search.datetime);
     }
   } else {
     link.body = search;

@@ -4,20 +4,27 @@ import {
   Button,
   ButtonGroup,
   createListCollection,
+  Field,
+  Group,
   Heading,
   HStack,
   IconButton,
+  Input,
   Portal,
   Progress,
   Select,
   Stack,
+  Switch,
+  Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { LuPause, LuPlay, LuSearch, LuX } from "react-icons/lu";
-import type { StacCollection, StacLink } from "stac-ts";
+import { useMap } from "react-map-gl/maplibre";
+import type { StacCollection, StacLink, TemporalExtent } from "stac-ts";
 import useStacMap from "../../hooks/stac-map";
 import useStacSearch from "../../hooks/stac-search";
 import type { StacSearch } from "../../types/stac";
+import { toaster } from "../ui/toaster";
 
 export default function ItemSearch({
   collection,
@@ -29,6 +36,9 @@ export default function ItemSearch({
   const { setItems, setPicked } = useStacMap();
   const [search, setSearch] = useState<StacSearch>();
   const [link, setLink] = useState<StacLink | undefined>(links[0]);
+  const [datetime, setDatetime] = useState<string>();
+  const [useViewportBounds, setUseViewportBounds] = useState(true);
+  const { map } = useMap();
 
   useEffect(() => {
     if (!search) {
@@ -60,6 +70,23 @@ export default function ItemSearch({
           </Alert.Description>
         </Alert.Content>
       </Alert.Root>
+
+      <Switch.Root
+        disabled={!map}
+        checked={!!map && useViewportBounds}
+        onCheckedChange={(e) => setUseViewportBounds(e.checked)}
+      >
+        <Switch.HiddenInput></Switch.HiddenInput>
+        <Switch.Label>Use viewport bounds</Switch.Label>
+        <Switch.Control></Switch.Control>
+      </Switch.Root>
+
+      <Text></Text>
+
+      <Datetime
+        interval={collection.extent?.temporal?.interval[0]}
+        setDatetime={setDatetime}
+      ></Datetime>
 
       <HStack>
         <Box flex={1}></Box>
@@ -98,7 +125,16 @@ export default function ItemSearch({
 
         <Button
           variant={"surface"}
-          onClick={() => setSearch({ collections: [collection.id] })}
+          onClick={() =>
+            setSearch({
+              collections: [collection.id],
+              datetime,
+              bbox:
+                useViewportBounds && map
+                  ? map.getBounds().toArray().flat()
+                  : undefined,
+            })
+          }
           disabled={!!search}
         >
           <LuSearch></LuSearch>
@@ -127,7 +163,7 @@ function Results({
   doClear: () => void;
 }) {
   const { items, setItems } = useStacMap();
-  const { data, isFetchingNextPage, hasNextPage, fetchNextPage } =
+  const { data, isFetchingNextPage, hasNextPage, fetchNextPage, error } =
     useStacSearch(search, link);
   const [pause, setPause] = useState(false);
 
@@ -140,6 +176,17 @@ function Results({
       fetchNextPage();
     }
   }, [isFetchingNextPage, pause, hasNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    if (error) {
+      toaster.create({
+        type: "error",
+        title: "Search error",
+        description: error.toString(),
+      });
+      doClear();
+    }
+  }, [error, doClear]);
 
   return (
     <Progress.Root
@@ -176,5 +223,127 @@ function Results({
         </Progress.ValueText>
       </HStack>
     </Progress.Root>
+  );
+}
+
+function Datetime({
+  interval,
+  setDatetime,
+}: {
+  interval: TemporalExtent | undefined;
+  setDatetime: (datetime: string | undefined) => void;
+}) {
+  const [startDatetime, setStartDatetime] = useState(
+    interval?.[0] ? new Date(interval[0]) : undefined,
+  );
+  const [endDatetime, setEndDatetime] = useState(
+    interval?.[1] ? new Date(interval[1]) : undefined,
+  );
+
+  useEffect(() => {
+    if (startDatetime || endDatetime) {
+      setDatetime(
+        `${startDatetime?.toISOString() || ".."}/${endDatetime?.toISOString() || ".."}`,
+      );
+    } else {
+      setDatetime(undefined);
+    }
+  }, [startDatetime, endDatetime, setDatetime]);
+
+  return (
+    <Stack>
+      <DatetimeInput
+        label="Start datetime"
+        datetime={startDatetime}
+        setDatetime={setStartDatetime}
+      ></DatetimeInput>
+      <DatetimeInput
+        label="End datetime"
+        datetime={endDatetime}
+        setDatetime={setEndDatetime}
+      ></DatetimeInput>
+      <HStack>
+        <Button
+          variant={"outline"}
+          onClick={() => {
+            setStartDatetime(interval?.[0] ? new Date(interval[0]) : undefined);
+            setEndDatetime(interval?.[1] ? new Date(interval[1]) : undefined);
+          }}
+        >
+          Set to collection extents
+        </Button>
+      </HStack>
+    </Stack>
+  );
+}
+
+function DatetimeInput({
+  label,
+  datetime,
+  setDatetime,
+}: {
+  label: string;
+  datetime: Date | undefined;
+  setDatetime: (datetime: Date | undefined) => void;
+}) {
+  const [error, setError] = useState<string>();
+  const dateValue = datetime?.toISOString().split("T")[0] || "";
+  const timeValue = datetime?.toISOString().split("T")[1].slice(0, 8) || "";
+
+  const setDatetimeChecked = (datetime: Date) => {
+    try {
+      datetime.toISOString();
+      // eslint-disable-next-line
+    } catch (e: any) {
+      setError(e.toString());
+      return;
+    }
+    setDatetime(datetime);
+    setError(undefined);
+  };
+  const setDate = (date: string) => {
+    setDatetimeChecked(
+      new Date(date + "T" + (timeValue == "" ? "00:00:00" : timeValue) + "Z"),
+    );
+  };
+  const setTime = (time: string) => {
+    if (dateValue != "") {
+      const newDatetime = new Date(dateValue);
+      const timeParts = time.split(":").map(Number);
+      newDatetime.setUTCHours(timeParts[0]);
+      newDatetime.setUTCMinutes(timeParts[1]);
+      if (timeParts.length == 3) {
+        newDatetime.setUTCSeconds(timeParts[2]);
+      }
+      setDatetimeChecked(newDatetime);
+    }
+  };
+
+  return (
+    <Field.Root invalid={!!error}>
+      <Field.Label>{label}</Field.Label>
+      <Group attached w={"full"}>
+        <Input
+          type="date"
+          value={dateValue}
+          onChange={(e) => setDate(e.target.value)}
+          size={"sm"}
+        ></Input>
+        <Input
+          type="time"
+          value={timeValue}
+          onChange={(e) => setTime(e.target.value)}
+          size={"sm"}
+        ></Input>
+        <IconButton
+          size={"sm"}
+          variant={"outline"}
+          onClick={() => setDatetime(undefined)}
+        >
+          <LuX></LuX>
+        </IconButton>
+      </Group>
+      <Field.ErrorText>{error}</Field.ErrorText>
+    </Field.Root>
   );
 }
