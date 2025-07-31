@@ -72,7 +72,8 @@ export default function ItemSearch({
       </Alert.Root>
 
       <Switch.Root
-        checked={useViewportBounds}
+        disabled={!map}
+        checked={!!map && useViewportBounds}
         onCheckedChange={(e) => setUseViewportBounds(e.checked)}
       >
         <Switch.HiddenInput></Switch.HiddenInput>
