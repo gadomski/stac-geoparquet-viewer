@@ -39,6 +39,10 @@ export interface StacGeoparquetMetadata {
   count: number;
   bbox: BBox;
   keyValue: KeyValueMetadata[];
+  temporalExtent?: {
+    start: Date;
+    end: Date;
+  };
 }
 
 export interface KeyValueMetadata {

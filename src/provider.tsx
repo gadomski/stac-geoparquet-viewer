@@ -25,7 +25,7 @@ import {
   serializeDateRange,
 } from "./utils/url-persistence";
 
-const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 300;
+const DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY = 200;
 
 export function StacMapProvider({ children }: { children: ReactNode }) {
   const [href, setHref] = useState<string | undefined>(getInitialHref());
@@ -68,15 +68,40 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     },
   );
 
+  const debouncedClientFilterUpdate = useDebounce((dateRange: unknown) => {
+    if (
+      typeof dateRange === "object" &&
+      dateRange !== null &&
+      "startDate" in dateRange &&
+      "endDate" in dateRange
+    ) {
+      updateClientFilterUrl(dateRange as DateRange);
+    }
+  }, DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY);
+
+  const [debouncedStacGeoparquetParams, setDebouncedStacGeoparquetParams] = useState({
+    path: parquetPath,
+    id: stacGeoparquetItemId,
+    dateRange: clientFilterDateRange,
+  });
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedStacGeoparquetParams({
+        path: parquetPath,
+        id: stacGeoparquetItemId,
+        dateRange: clientFilterDateRange,
+      });
+    }, DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY);
+
+    return () => clearTimeout(timeoutId);
+  }, [parquetPath, stacGeoparquetItemId, clientFilterDateRange]);
+
   const {
     table: stacGeoparquetTable,
     metadata: stacGeoparquetMetadata,
     item: stacGeoparquetItem,
-  } = useStacGeoparquet({
-    path: parquetPath,
-    id: stacGeoparquetItemId,
-    dateRange: clientFilterDateRange, // Use client filter for GeoParquet
-  });
+  } = useStacGeoparquet(debouncedStacGeoparquetParams);
 
   const [picked, setPicked] = useState<StacValue>();
   const [searchItems, setSearchItems] = useState<StacItem[][]>([]);
@@ -130,17 +155,6 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
     const newUrl = `${location.pathname}?${params.toString()}`;
     history.replaceState(null, "", newUrl);
   }, []);
-
-  const debouncedClientFilterUpdate = useDebounce((dateRange: unknown) => {
-    if (
-      typeof dateRange === "object" &&
-      dateRange !== null &&
-      "startDate" in dateRange &&
-      "endDate" in dateRange
-    ) {
-      updateClientFilterUrl(dateRange as DateRange);
-    }
-  }, DEBOUNCE_CLIENT_FILTER_UPDATE_DELAY);
 
   useEffect(() => {
     function handlePopState() {
@@ -202,10 +216,12 @@ export function StacMapProvider({ children }: { children: ReactNode }) {
   }, [value, clearDateRange]);
 
   const hasTemporalData = useMemo(() => {
+    if (stacGeoparquetMetadata?.temporalExtent) return true;
+    
     if (picked) return !!extractTemporalExtent(picked);
     if (value) return !!extractTemporalExtent(value);
     return false;
-  }, [picked, value]);
+  }, [picked, value, stacGeoparquetMetadata]);
 
   const contextValue = {
     href,

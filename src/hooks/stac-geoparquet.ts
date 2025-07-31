@@ -162,6 +162,16 @@ async function getMetadata(
   const summaryResult = await connection.query(query);
   const summaryRow = summaryResult.toArray().map((row) => row.toJSON())[0];
 
+  const temporalQuery = `
+    SELECT 
+      MIN(datetime) as min_datetime,
+      MAX(datetime) as max_datetime
+    FROM read_parquet('${path}')
+  `;
+
+  const temporalResult = await connection.query(temporalQuery);
+  const temporalRow = temporalResult.toArray().map((row) => row.toJSON())[0];
+
   const kvMetadataResult = await connection.query(
     `SELECT key, value FROM parquet_kv_metadata('${path}')`,
   );
@@ -185,6 +195,10 @@ async function getMetadata(
     count: summaryRow.count,
     bbox: [summaryRow.xmin, summaryRow.ymin, summaryRow.xmax, summaryRow.ymax],
     keyValue: kvMetadata,
+    temporalExtent: {
+      start: new Date(temporalRow.min_datetime),
+      end: new Date(temporalRow.max_datetime),
+    },
   };
 }
 

@@ -33,12 +33,20 @@ export default function SlidingDateFilter({
     isClientFilterActive,
     dateRange,
     picked,
+    stacGeoparquetMetadata,
   } = useStacMap();
 
   const sliderRange = useMemo(() => {
     const defaultRange = { min: 0, max: 100, step: 1, hasValidRange: false };
 
     const getExtent = () => {
+      if (stacGeoparquetMetadata?.temporalExtent) {
+        return {
+          start: stacGeoparquetMetadata.temporalExtent.start,
+          end: stacGeoparquetMetadata.temporalExtent.end,
+        };
+      }
+
       if (picked) {
         const ext = extractTemporalExtent(picked);
         if (ext) return { start: ext.start, end: ext.end };
@@ -65,7 +73,7 @@ export default function SlidingDateFilter({
     const step = Math.max(1, Math.min(3600000, Math.floor(duration / 1000)));
 
     return { min, max, step, hasValidRange: true };
-  }, [value, picked, dateRange]);
+  }, [value, picked, dateRange, stacGeoparquetMetadata]);
 
   const windowSize = useMemo(() => {
     if (!sliderRange.hasValidRange) return 86400000; // 24h
