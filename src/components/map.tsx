@@ -3,9 +3,15 @@ import { Layer, type DeckProps } from "@deck.gl/core";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { GeoArrowPolygonLayer } from "@geoarrow/deck.gl-layers";
-import turfBbox from "@turf/bbox";
 import bboxPolygon from "@turf/bbox-polygon";
-import type { BBox, Feature, FeatureCollection, GeoJSON } from "geojson";
+import { featureCollection } from "@turf/helpers";
+import type {
+  BBox,
+  Feature,
+  FeatureCollection,
+  GeoJSON,
+  Polygon,
+} from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import {
@@ -15,13 +21,8 @@ import {
 } from "react-map-gl/maplibre";
 import type { StacCollection } from "stac-ts";
 import useStacMap from "../hooks/stac-map";
+import type { StacValue } from "../types/stac";
 import { useColorModeValue } from "./ui/color-mode";
-
-function DeckGLOverlay(props: DeckProps) {
-  const control = useControl<MapboxOverlay>(() => new MapboxOverlay({}));
-  control.setProps(props);
-  return <></>;
-}
 
 const fillColor: [number, number, number, number] = [207, 63, 2, 50];
 const lineColor: [number, number, number, number] = [207, 63, 2, 100];
@@ -48,104 +49,32 @@ export default function Map() {
   const {
     value,
     collections,
-    searchItems,
+    items,
+    picked,
+    setPicked,
     stacGeoparquetTable,
     stacGeoparquetMetadata,
-    stacGeoparquetItem,
     setStacGeoparquetItemId,
-    setPicked,
-    picked,
   } = useStacMap();
-  const [data, setData] = useState<GeoJSON | Feature[]>();
-  const [visible, setVisible] = useState(true);
-  const [filled, setFilled] = useState(true);
-  const [pickable, setPickable] = useState(false);
-  const [bbox, setBbbox] = useState<BBox>();
-  const [stacGeoparquetLayer, setStacGeoparquetLayer] =
-    useState<GeoArrowPolygonLayer>();
+  const {
+    geojson,
+    bbox: valueBbox,
+    filled,
+  } = useStacValueLayerProperties(value, collections);
+  const [bbox, setBbox] = useState<BBox>();
   const small = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
-    switch (value?.type) {
-      case "Catalog":
-        setBbbox(collections && getCollectionsExtent(collections));
-        setData(
-          collections &&
-            collections.map((collection) =>
-              bboxPolygon(collection.extent?.spatial?.bbox?.[0] as BBox),
-            ),
-        );
-        setFilled(false);
-        setPickable(false);
-        break;
-      case "Collection":
-        setBbbox(value.extent?.spatial?.bbox?.[0] as BBox);
-        setData(bboxPolygon(value.extent?.spatial?.bbox?.[0] as BBox));
-        setFilled(true);
-        setPickable(false);
-        break;
-      case "Feature":
-        setBbbox(value.bbox as BBox);
-        setData(value as Feature);
-        setFilled(true);
-        setPickable(false);
-        break;
-      case "FeatureCollection":
-        setBbbox(
-          (value.features.length > 0 && turfBbox(value as FeatureCollection)) ||
-            undefined,
-        );
-        setData(value as FeatureCollection);
-        setFilled(true);
-        setPickable(true);
+    if (valueBbox) {
+      setBbox(valueBbox);
     }
-  }, [value, collections]);
+  }, [valueBbox]);
 
   useEffect(() => {
-    if (stacGeoparquetTable) {
-      setStacGeoparquetLayer(
-        new GeoArrowPolygonLayer({
-          id: "stac-geoparquet",
-          data: stacGeoparquetTable,
-          filled: true,
-          stroked: true,
-          getFillColor: (info) =>
-            stacGeoparquetItem &&
-            stacGeoparquetItem.id ==
-              stacGeoparquetTable.getChild("id")?.get(info.index)
-              ? inverseFillColor
-              : fillColor,
-          getLineColor: (info) =>
-            stacGeoparquetItem &&
-            stacGeoparquetItem.id ==
-              stacGeoparquetTable.getChild("id")?.get(info.index)
-              ? inverseLineColor
-              : lineColor,
-          lineWidthUnits: "pixels",
-          getLineWidth: 2,
-          autoHighlight: true,
-          pickable: true,
-          onClick: (info) => {
-            setStacGeoparquetItemId(
-              stacGeoparquetTable.getChild("id")?.get(info.index),
-            );
-          },
-          updateTriggers: {
-            getFillColor: [stacGeoparquetItem],
-            getLineColor: [stacGeoparquetItem],
-          },
-        }),
-      );
-    } else {
-      setStacGeoparquetLayer(undefined);
+    if (stacGeoparquetMetadata) {
+      setBbox(stacGeoparquetMetadata.bbox);
     }
-  }, [stacGeoparquetTable, setStacGeoparquetItemId, stacGeoparquetItem]);
-
-  useEffect(() => {
-    if (stacGeoparquetMetadata?.bbox) {
-      setBbbox(stacGeoparquetMetadata.bbox);
-    }
-  }, [stacGeoparquetMetadata?.bbox]);
+  }, [stacGeoparquetMetadata]);
 
   useEffect(() => {
     if (bbox && mapRef.current) {
@@ -169,54 +98,65 @@ export default function Map() {
     }
   }, [bbox, small]);
 
-  useEffect(() => {
-    if (searchItems.length > 0) {
-      setVisible(false);
-    } else {
-      setVisible(true);
-    }
-  }, [searchItems]);
-
-  const searchLayers = searchItems.map((items, index) => {
-    return new GeoJsonLayer({
-      id: `search-${index}`,
-      data: items as Feature[],
+  const layers: Layer[] = [
+    new GeoJsonLayer({
+      id: "picked",
+      data: picked as Feature | undefined,
       filled: true,
       stroked: true,
-      getFillColor: (item) =>
-        item.id === picked?.id ? inverseFillColor : fillColor,
-      getLineColor: (item) =>
-        item.id === picked?.id ? inverseLineColor : lineColor,
+      getFillColor: inverseFillColor,
+      getLineColor: inverseLineColor,
+      lineWidthUnits: "pixels",
+      getLineWidth: 2,
+    }),
+    new GeoJsonLayer({
+      id: "items",
+      data: items as Feature[] | undefined,
+      filled: true,
+      stroked: true,
+      getFillColor: fillColor,
+      getLineColor: fillColor,
       lineWidthUnits: "pixels",
       getLineWidth: 2,
       pickable: true,
       onClick: (info) => {
         setPicked(info.object);
       },
-      updateTriggers: {
-        getFillColor: [picked],
-        getLineColor: [picked],
-      },
-    });
-  });
-  const layers: Layer[] = [
-    ...searchLayers,
+    }),
     new GeoJsonLayer({
       id: "value",
-      visible: visible,
-      data,
-      filled: filled,
+      data: geojson,
+      filled: filled && !picked && !items,
       stroked: true,
       getFillColor: fillColor,
       getLineColor: lineColor,
       lineWidthUnits: "pixels",
       getLineWidth: 2,
-      pickable,
+      updateTriggers: [picked, items],
     }),
   ];
 
-  if (stacGeoparquetLayer) {
-    layers.push(stacGeoparquetLayer);
+  if (stacGeoparquetTable) {
+    layers.push(
+      new GeoArrowPolygonLayer({
+        id: "stac-geoparquet",
+        data: stacGeoparquetTable,
+        filled: true,
+        stroked: true,
+        getFillColor: fillColor,
+        getLineColor: lineColor,
+        lineWidthUnits: "pixels",
+        getLineWidth: 2,
+        autoHighlight: true,
+        pickable: true,
+        onClick: (info) => {
+          setStacGeoparquetItemId(
+            stacGeoparquetTable.getChild("id")?.get(info.index),
+          );
+        },
+        updateTriggers: [picked],
+      }),
+    );
   }
 
   return (
@@ -242,54 +182,10 @@ export default function Map() {
   );
 }
 
-function sanitizeBbox(bbox: number[]) {
-  const newBbox = (bbox.length == 6 && [
-    bbox[0],
-    bbox[1],
-    bbox[3],
-    bbox[4],
-  ]) || [bbox[0], bbox[1], bbox[2], bbox[3]];
-  if (newBbox[0] < -180) {
-    newBbox[0] = -180;
-  }
-  if (newBbox[1] < -90) {
-    newBbox[1] = -90;
-  }
-  if (newBbox[2] > 180) {
-    newBbox[2] = 180;
-  }
-  if (newBbox[3] > 90) {
-    newBbox[3] = 90;
-  }
-  return newBbox as [number, number, number, number];
-}
-
-function getCollectionsExtent(collections: StacCollection[]): BBox {
-  const validCollections = collections.filter(
-    (collection) => collection.extent?.spatial?.bbox?.[0],
-  );
-
-  if (validCollections.length == 0) {
-    return [-180, -90, 180, 90];
-  }
-
-  const bbox = [180, 90, -180, -90];
-  validCollections.forEach((collection) => {
-    const sanitizedBbox = sanitizeBbox(collection.extent.spatial.bbox[0]);
-    if (sanitizedBbox[0] < bbox[0]) {
-      bbox[0] = sanitizedBbox[0];
-    }
-    if (sanitizedBbox[1] < bbox[1]) {
-      bbox[1] = sanitizedBbox[1];
-    }
-    if (sanitizedBbox[2] > bbox[2]) {
-      bbox[2] = sanitizedBbox[2];
-    }
-    if (sanitizedBbox[3] > bbox[3]) {
-      bbox[3] = sanitizedBbox[3];
-    }
-  });
-  return bbox as BBox;
+function DeckGLOverlay(props: DeckProps) {
+  const control = useControl<MapboxOverlay>(() => new MapboxOverlay({}));
+  control.setProps(props);
+  return <></>;
 }
 
 function getCursor(
@@ -312,4 +208,118 @@ function getCursor(
     mapRef.current.getCanvas().style.cursor = cursor;
   }
   return cursor;
+}
+
+function useStacValueLayerProperties(
+  value: StacValue | undefined,
+  collections: StacCollection[] | undefined,
+) {
+  const [geojson, setGeojson] = useState<GeoJSON>();
+  const [bbox, setBbox] = useState<BBox>();
+  const [filled, setFilled] = useState(false);
+  const { geojson: collectionsGeojson, bbox: collectionsBbox } =
+    useCollectionsLayerProperties(collections);
+
+  useEffect(() => {
+    if (value) {
+      switch (value.type) {
+        case "Catalog":
+          setGeojson(collectionsGeojson);
+          setBbox(collectionsBbox);
+          setFilled(false);
+          break;
+        case "Collection":
+          setGeojson(
+            value.extent?.spatial?.bbox &&
+              bboxPolygon(sanitizeBbox(value.extent.spatial.bbox[0])),
+          );
+          setBbox(value.extent?.spatial?.bbox?.[0] as BBox);
+          setFilled(true);
+          break;
+        case "Feature":
+          setGeojson(value as GeoJSON);
+          setBbox(value.bbox as BBox | undefined);
+          setFilled(true);
+          break;
+        case "FeatureCollection":
+          setGeojson(undefined);
+          setBbox(undefined);
+          setFilled(false);
+          break;
+      }
+    }
+  }, [value, collectionsGeojson, bbox, collectionsBbox]);
+
+  return { geojson, bbox, filled };
+}
+
+function useCollectionsLayerProperties(
+  collections: StacCollection[] | undefined,
+) {
+  const [geojson, setGeojson] = useState<FeatureCollection<Polygon>>();
+  const [bbox, setBbox] = useState<[number, number, number, number]>();
+
+  useEffect(() => {
+    if (collections) {
+      const bbox: [number, number, number, number] = [180, 90, -180, -90];
+      const polygons = collections
+        .map((collection) => {
+          if (collection.extent?.spatial?.bbox) {
+            const sanitizedBbox = sanitizeBbox(
+              collection.extent.spatial.bbox[0],
+            );
+            if (sanitizedBbox[0] < bbox[0]) {
+              bbox[0] = sanitizedBbox[0];
+            }
+            if (sanitizedBbox[1] < bbox[1]) {
+              bbox[1] = sanitizedBbox[1];
+            }
+            if (sanitizedBbox[2] > bbox[2]) {
+              bbox[2] = sanitizedBbox[2];
+            }
+            if (sanitizedBbox[3] > bbox[3]) {
+              bbox[3] = sanitizedBbox[3];
+            }
+            return bboxPolygon(sanitizedBbox);
+          } else {
+            return undefined;
+          }
+        })
+        .filter((bbox) => !!bbox);
+      if (polygons.length > 0) {
+        setGeojson(featureCollection(polygons));
+        setBbox(bbox);
+      } else {
+        setGeojson(undefined);
+        setBbox(undefined);
+      }
+    } else {
+      setGeojson(undefined);
+      setBbox(undefined);
+    }
+  }, [collections]);
+
+  return { geojson, bbox };
+}
+
+function sanitizeBbox(bbox: number[]) {
+  const newBbox = (bbox.length == 6 && [
+    bbox[0],
+    bbox[1],
+    bbox[3],
+    bbox[4],
+  ]) || [bbox[0], bbox[1], bbox[2], bbox[3]];
+  if (newBbox[0] < -180) {
+    newBbox[0] = -180;
+  }
+  if (newBbox[1] < -90) {
+    newBbox[1] = -90;
+  }
+  if (newBbox[2] > 180) {
+    newBbox[2] = 180;
+  }
+  if (newBbox[3] > 90) {
+    newBbox[3] = 90;
+  }
+  return newBbox as [number, number, number, number];
 }

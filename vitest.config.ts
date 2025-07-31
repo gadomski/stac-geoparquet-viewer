@@ -4,6 +4,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react(), wasm()],
+  optimizeDeps: {
+    include: ["@deck.gl/core", "@duckdb/duckdb-wasm"],
+  },
   test: {
     browser: {
       enabled: true,
